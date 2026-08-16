@@ -1,1 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuleFit - 배당 현금흐름 자동 계산기</title>
+    <!-- Chart.js 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #10b981;
+            --accent-blue: #3b82f6;
+            --danger: #ef4444;
+            --border: #334155;
+        }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            padding-bottom: 40px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-top: 10px;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        input {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .input-ticker { flex: 2; text-transform: uppercase; }
+        .input-qty { flex: 1.5; }
+
+        button.btn-add {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button.btn-add:active { opacity: 0.8; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .summary-box {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-box .label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .summary-box .value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin-top: 4px;
+        }
+
+        .summary-box .sub-value {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .stock-list {
+            list-style: none;
+        }
+
+        .stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stock-item:last-child { border-bottom: none; }
+
+        .stock-info .symbol {
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        .stock-info .details {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .stock-payout {
+            text-align: right;
+        }
+
+        .stock-payout .annual {
+            font-weight: bold;
+            color: var(--accent-blue);
+            font-size: 0.9rem;
+        }
+
+        .btn-del {
+            background: none;
+            border: none;
+            color: var(--danger);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 4px;
+            margin-left: 8px;
+        }
+
+        .loading-spinner {
+            font-size: 0.8rem;
+            color: var(--accent-blue);
+            text-align: center;
+            display: none;
+            margin-bottom: 8px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🚦 RuleFit <span>배당 가계부</span></h1>
+        <p>종목코드와 수량만 입력하면 현금흐름이 완성됩니다</p>
+    </header>
+
+    <!-- 종목 입력 카트 -->
+    <div class="card">
+        <div class="card-title">
+            <span>보유 종목 추가</span>
+            <span id="rate-info" style="font-size:0.75rem; color:var(--text-secondary);">환율: 불러오는 중...</span>
+        </div>
+        <div class="input-group">
+            <input type="text" id="tickerInput" class="input-ticker" placeholder="티커 (예: JEPQ, SCHD)" />
+            <input type="number" id="qtyInput" class="input-qty" placeholder="수량" min="1" />
+            <button class="btn-add" onclick="addStock()">추가</button>
+        </div>
+        <div id="loading" class="loading-spinner">🔄 금융 데이터 불러오는 중...</div>
+    </div>
+
+    <!-- 요약 대시보드 -->
+    <div class="card">
+        <div class="card-title">연간 배당 요약 (세후 15.4% 적용)</div>
+        <div class="summary-grid">
+            <div class="summary-box">
+                <div class="label">월평균 배당금</div>
+                <div class="value" id="monthlyKRW">₩0</div>
+                <div class="sub-value" id="monthlyUSD">$0.00</div>
+            </div>
+            <div class="summary-box">
+                <div class="label">연간 총 배당금</div>
+                <div class="value" id="annualKRW">₩0</div>
+                <div class="sub-value" id="annualUSD">$0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 월별 예상 배당 차트 -->
+    <div class="card">
+        <div class="card-title">월별 현금흐름 지도</div>
+        <div class="chart-container">
+            <canvas id="dividendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 보유 종목 리스트 -->
+    <div class="card">
+        <div class="card-title">내 포트폴리오</div>
+        <ul id="stockList" class="stock-list">
+            <!-- 리스트 항목 자동 생성 -->
+        </ul>
+    </div>
+
+    <script>
+        let usdKrwRate = 1350; // 기본 환율
+        let portfolio = JSON.parse(localStorage.getItem('rulefit_portfolio')) || [];
+        let dividendChart = null;
+
+        // 초기화
+        window.onload = async () => {
+            await fetchExchangeRate();
+            initChart();
+            renderPortfolio();
+        };
+
+        // 환율 정보 받아오기
+        async function fetchExchangeRate() {
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await res.json();
+                if (data && data.rates && data.rates.KRW) {
+                    usdKrwRate = data.rates.KRW;
+                    document.getElementById('rate-info').innerText = `환율: ₩${Math.round(usdKrwRate)}/USD`;
+                }
+            } catch (e) {
+                document.getElementById('rate-info').innerText = `환율: ₩${usdKrwRate} (기본값)`;
+            }
+        }
+
+        // 야후 파이낸스 데이터 가져오기 (CORS 우회 프록시 사용)
+        async function fetchStockData(symbol) {
+            symbol = symbol.toUpperCase().trim();
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1y`;
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+
+            const res = await fetch(proxyUrl);
+            const data = await res.json();
+            
+            const meta = data.chart.result[0].meta;
+            const events = data.chart.result[0].events;
+
+            const currentPrice = meta.regularMarketPrice || 0;
+            const currency = meta.currency || 'USD';
+            
+            // 배당금 계산 (지난 1년간 배당 합산)
+            let annualDividend = 0;
+            let monthlyPayouts = Array(12).fill(0); // 1월~12월
+
+            if (events && events.dividends) {
+                Object.values(events.dividends).forEach(div => {
+                    const date = new Date(div.date * 1000);
+                    const month = date.getMonth(); // 0~11
+                    annualDividend += div.amount;
+                    monthlyPayouts[month] += div.amount;
+                });
+            }
+
+            return {
+                symbol,
+                price: currentPrice,
+                currency,
+                annualDividend,
+                monthlyPayouts
+            };
+        }
+
+        // 종목 추가
+        async function addStock() {
+            const tickerInput = document.getElementById('tickerInput');
+            const qtyInput = document.getElementById('qtyInput');
+            const loading = document.getElementById('loading');
+
+            const symbol = tickerInput.value.trim().toUpperCase();
+            const qty = parseFloat(qtyInput.value);
+
+            if (!symbol || isNaN(qty) || qty <= 0) {
+                alert('올바른 티커와 수량을 입력해주세요.');
+                return;
+            }
+
+            loading.style.display = 'block';
+
+            try {
+                const stockData = await fetchStockData(symbol);
+                
+                // 기존 종목 체크 및 업데이트
+                const existingIndex = portfolio.findIndex(item => item.symbol === symbol);
+                if (existingIndex > -1) {
+                    portfolio[existingIndex].qty += qty;
+                    portfolio[existingIndex].data = stockData;
+                } else {
+                    portfolio.push({ symbol, qty, data: stockData });
+                }
+
+                saveAndRender();
+                tickerInput.value = '';
+                qtyInput.value = '';
+            } catch (err) {
+                alert('종목 정보를 불러오는 데 실패했습니다. 티커를 확인해주세요.');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 종목 삭제
+        function deleteStock(symbol) {
+            portfolio = portfolio.filter(item => item.symbol !== symbol);
+            saveAndRender();
+        }
+
+        // 저장 및 화면 갱신
+        function saveAndRender() {
+            localStorage.setItem('rulefit_portfolio', JSON.stringify(portfolio));
+            renderPortfolio();
+        }
+
+        // 화면 렌더링
+        function renderPortfolio() {
+            const listEl = document.getElementById('stockList');
+            listEl.innerHTML = '';
+
+            let totalAnnualUSD = 0;
+            let monthlyTotalsUSD = Array(12).fill(0);
+
+            portfolio.forEach(item => {
+                const { symbol, qty, data } = item;
+                const isUSD = data.currency === 'USD';
+                
+                // 배당금 원화/달러 환산 (세후 15.4% 적용)
+                const afterTaxFactor = 0.846; 
+                const annualDivPerShare = data.annualDividend * afterTaxFactor;
+                const itemAnnualDivUSD = isUSD ? (annualDivPerShare * qty) : ((annualDivPerShare * qty) / usdKrwRate);
+                
+                totalAnnualUSD += itemAnnualDivUSD;
+
+                // 월별 배당 합산
+                data.monthlyPayouts.forEach((amt, m) => {
+                    const monthlyAmt = amt * qty * afterTaxFactor;
+                    monthlyTotalsUSD[m] += isUSD ? monthlyAmt : (monthlyAmt / usdKrwRate);
+                });
+
+                // 리스트 아이템 UI
+                const li = document.createElement('li');
+                li.className = 'stock-item';
+                
+                const annualDivDisplay = isUSD 
+                    ? `$${(annualDivPerShare * qty).toFixed(2)} (₩${Math.round(annualDivPerShare * qty * usdKrwRate).toLocaleString()})`
+                    : `₩${Math.round(annualDivPerShare * qty).toLocaleString()}`;
+
+                li.innerHTML = `
+                    <div class="stock-info">
+                        <div class="symbol">${symbol} (${qty}주)</div>
+                        <div class="details">현재가: ${isUSD ? '$' : '₩'}${data.price}</div>
+                    </div>
+                    <div class="stock-payout">
+                        <div class="annual">${annualDivDisplay} /년</div>
+                    </div>
+                    <button class="btn-del" onclick="deleteStock('${symbol}')">&times;</button>
+                `;
+                listEl.appendChild(li);
+            });
+
+            // 요약 수치 업데이트
+            const totalAnnualKRW = totalAnnualUSD * usdKrwRate;
+            const monthlyUSD = totalAnnualUSD / 12;
+            const monthlyKRW = totalAnnualKRW / 12;
+
+            document.getElementById('annualUSD').innerText = `$${totalAnnualUSD.toFixed(2)}`;
+            document.getElementById('annualKRW').innerText = `₩${Math.round(totalAnnualKRW).toLocaleString()}`;
+            document.getElementById('monthlyUSD').innerText = `$${monthlyUSD.toFixed(2)}`;
+            document.getElementById('monthlyKRW').innerText = `₩${Math.round(monthlyKRW).toLocaleString()}`;
+
+            // 차트 업데이트
+            updateChart(monthlyTotalsUSD.map(val => Math.round(val * usdKrwRate)));
+        }
+
+        // 차트 초기화
+        function initChart() {
+            const ctx = document.getElementById('dividendChart').getContext('2d');
+            dividendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+                    datasets: [{
+                        label: '예상 배당금 (원화)',
+                        data: Array(12).fill(0),
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8', callback: val => '₩' + (val/10000).toFixed(0) + '만' } }
+                    }
+                }
+            });
+        }
+
+        // 차트 데이터 업데이트
+        function updateChart(monthlyKRWArray) {
+            if (dividendChart) {
+                dividendChart.data.datasets[0].data = monthlyKRWArray;
+                dividendChart.update();
+            }
+        }
+    </script>
+</body>
+</html>

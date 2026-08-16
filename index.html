@@ -3,168 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>RuleFit - 배당 가계부</title>
     
-    <!-- PWA 및 앱처럼 보이기 위한 설정 -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
-    <meta name="application-name" content="RuleFit">
     
-    <!-- 아이콘 설정: 홈 화면 추가 시 브라우저 아이콘 없이 깔끔하게 표시 -->
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/192/bullish.png">
-    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/96/bullish.png">
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent: #10b981;
-            --accent-blue: #3b82f6;
-            --danger: #ef4444;
-            --border: #334155;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            padding: 16px;
-            max-width: 600px;
-            margin: 0 auto;
-            padding-bottom: 60px;
-        }
-
-        header { text-align: center; margin-bottom: 20px; padding-top: 10px; }
-        header h1 { font-size: 1.5rem; color: var(--accent); display: flex; align-items: center; justify-content: center; gap: 8px; }
-        
-        .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border); }
-        .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-
-        input { background: #0f172a; border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: 8px; font-size: 1rem; width: 100%; outline: none; }
-        input:focus { border-color: var(--accent-blue); }
-
-        .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
-        .input-ticker { flex: 2; }
-        .input-qty { flex: 1.5; }
-
-        button.btn-add { background: var(--accent); color: #000; font-weight: bold; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; }
-
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .summary-box { background: #0f172a; padding: 12px; border-radius: 8px; text-align: center; }
-        .summary-box .label { font-size: 0.75rem; color: var(--text-secondary); }
-        .summary-box .value { font-size: 1.1rem; font-weight: bold; color: var(--accent); margin-top: 4px; }
-
-        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .stock-info .symbol { font-weight: bold; }
-        .stock-info .details { font-size: 0.75rem; color: var(--text-secondary); }
-        .stock-payout { text-align: right; font-weight: bold; color: var(--accent-blue); }
-        .btn-del { background: none; border: none; color: var(--danger); font-size: 1.3rem; cursor: pointer; padding: 0 4px; }
-        
-        .chart-container { position: relative; height: 180px; width: 100%; }
-        .loading { font-size: 0.85rem; color: var(--accent-blue); text-align: center; display: none; margin-top: 8px; }
+        :root { --bg-color: #0f172a; --card-bg: #1e293b; --text-primary: #f8fafc; --accent: #10b981; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-primary); padding: 16px; max-width: 600px; margin: 0 auto; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 8px; }
+        button.btn-add { background: var(--accent); color: #000; font-weight: bold; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; }
+        .stock-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155; }
+        .btn-del { color: #ef4444; border: none; background: none; font-size: 1.2rem; cursor: pointer; }
     </style>
 </head>
 <body>
-
-    <header>
-        <h1>🚦 RuleFit</h1>
-    </header>
-
+    <header style="text-align:center; margin-bottom:20px; color:var(--accent);"><h1>🚦 RuleFit</h1></header>
     <div class="card">
-        <div class="card-title">종목 추가</div>
-        <div class="input-row">
-            <input type="text" id="tickerInput" class="input-ticker" placeholder="종목명/티커" />
-            <input type="number" id="qtyInput" class="input-qty" placeholder="수량" />
-        </div>
+        <input type="text" id="tickerInput" placeholder="종목명 (예: 삼성전자, SCHD)" />
+        <input type="number" id="qtyInput" placeholder="수량" />
         <button class="btn-add" onclick="addStock()">추가하기</button>
-        <div id="loading" class="loading">🔄 데이터 불러오는 중...</div>
     </div>
-
-    <div class="card">
-        <div class="card-title">연간 요약 (세후 15.4%)</div>
-        <div class="summary-grid">
-            <div class="summary-box">
-                <div class="label">월평균</div>
-                <div class="value" id="monthlyKRW">₩0</div>
-            </div>
-            <div class="summary-box">
-                <div class="label">연간합계</div>
-                <div class="value" id="annualKRW">₩0</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">월별 현금흐름</div>
-        <div class="chart-container"><canvas id="dividendChart"></canvas></div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">내 포트폴리오</div>
-        <ul id="stockList" style="list-style: none;"></ul>
-    </div>
+    <div class="card"><ul id="stockList" style="list-style:none;"></ul></div>
 
     <script>
         const API_KEY = "FTsF20xcVN66SHzsmwfCn12KWCK0IllE";
         let usdKrwRate = 1415;
         let portfolio = JSON.parse(localStorage.getItem('rulefit_portfolio')) || [];
-        let dividendChart = null;
 
-        const KR_STOCKS = {
-            "삼성전자": { symbol: "삼성전자", price: 60000, annualDividend: 1444, currency: "KRW" },
-            "SK하이닉스": { symbol: "SK하이닉스", price: 190000, annualDividend: 1500, currency: "KRW" },
-            "맥쿼리인프라": { symbol: "맥쿼리인프라", price: 12000, annualDividend: 770, currency: "KRW" }
+        // 국내 주식 사전 데이터
+        const KR_DB = {
+            "삼성전자": { price: 60000, div: 1444, currency: "KRW" },
+            "SK하이닉스": { price: 190000, div: 1500, currency: "KRW" },
+            "맥쿼리인프라": { price: 12000, div: 770, currency: "KRW" }
         };
 
-        async function fetchExchangeRate() {
-            try {
-                const res = await fetch('https://open.er-api.com/v6/latest/USD');
-                const data = await res.json();
-                usdKrwRate = data.rates.KRW;
-            } catch(e) {}
-        }
+        async function addStock() {
+            const name = document.getElementById('tickerInput').value.trim();
+            const qty = parseInt(document.getElementById('qtyInput').value);
+            if (!name || isNaN(qty)) return;
 
-        async function fetchStockData(inputSymbol) {
-            const raw = inputSymbol.trim();
-            if (KR_STOCKS[raw]) {
-                return { ...KR_STOCKS[raw], monthlyPayouts: Array(12).fill(KR_STOCKS[raw].annualDividend / 12) };
+            // 1. 국내 주식 매칭 (로직 강화)
+            let found = false;
+            for (let key in KR_DB) {
+                if (name.includes(key) || key.includes(name)) {
+                    saveAndRender(name, qty, KR_DB[key]);
+                    found = true; break;
+                }
             }
+            if (found) return;
 
+            // 2. 해외 주식 API
             try {
-                const res = await fetch(`https://financialmodelingprep.com/api/v3/profile/${raw.toUpperCase()}?apikey=${API_KEY}`);
+                const res = await fetch(`https://financialmodelingprep.com/api/v3/profile/${name.toUpperCase()}?apikey=${API_KEY}`);
                 const data = await res.json();
                 if (data && data.length > 0) {
-                    return { symbol: raw.toUpperCase(), price: data[0].price, currency: 'USD', annualDividend: data[0].lastDiv || (data[0].price * 0.05), monthlyPayouts: Array(12).fill((data[0].lastDiv || (data[0].price * 0.05)) / 12) };
+                    saveAndRender(name, qty, { price: data[0].price, div: data[0].lastDiv || (data[0].price * 0.05), currency: 'USD' });
+                } else {
+                    alert("종목을 찾을 수 없습니다. 직접 입력해주세요.");
+                    const p = prompt("현재가 입력", "10000");
+                    const d = prompt("연간 배당금 입력", "500");
+                    saveAndRender(name, qty, { price: parseFloat(p), div: parseFloat(d), currency: 'KRW' });
                 }
-            } catch(e) {}
-            
-            // 수동입력
-            const isKrw = confirm("원화(KRW) 주식인가요?");
-            const p = prompt("현재가 입력", "10000");
-            const d = prompt("연간 배당금 입력", "400");
-            return { symbol: raw, price: parseFloat(p), currency: isKrw ? 'KRW' : 'USD', annualDividend: parseFloat(d), monthlyPayouts: Array(12).fill(parseFloat(d)/12) };
+            } catch(e) { alert("오류 발생"); }
         }
 
-        async function addStock() {
-            const ticker = document.getElementById('tickerInput').value;
-            const qty = parseFloat(document.getElementById('qtyInput').value);
-            if (!ticker || !qty) return;
-            
-            document.getElementById('loading').style.display = 'block';
-            const data = await fetchStockData(ticker);
-            portfolio.push({ symbol: data.symbol, qty, data });
-            localStorage.setItem('rulefit_portfolio', JSON.stringify(portfolio));
-            document.getElementById('loading').style.display = 'none';
-            render();
-        }
-
-        function deleteStock(idx) {
-            portfolio.splice(idx, 1);
+        function saveAndRender(name, qty, info) {
+            portfolio.push({ name, qty, info });
             localStorage.setItem('rulefit_portfolio', JSON.stringify(portfolio));
             render();
         }
@@ -172,36 +85,15 @@
         function render() {
             const list = document.getElementById('stockList');
             list.innerHTML = '';
-            let totalAnnualUSD = 0;
-            let monthlyData = Array(12).fill(0);
-
             portfolio.forEach((item, idx) => {
-                const afterTax = 0.846;
-                const divUSD = item.data.currency === 'KRW' ? (item.data.annualDividend / usdKrwRate) * afterTax : item.data.annualDividend * afterTax;
-                totalAnnualUSD += divUSD * item.qty;
-                
-                item.data.monthlyPayouts.forEach((m, i) => {
-                    monthlyData[i] += (item.data.currency === 'KRW' ? (m / usdKrwRate) : m) * item.qty * afterTax;
-                });
-
+                const totalKRW = (item.info.currency === 'KRW' ? item.info.div : item.info.div * usdKrwRate) * item.qty * 0.846;
                 const li = document.createElement('li');
                 li.className = 'stock-item';
-                li.innerHTML = `<div class="stock-info"><div class="symbol">${item.symbol} (${item.qty}주)</div></div><div class="stock-payout">₩${Math.round(divUSD * item.qty * usdKrwRate).toLocaleString()}</div><button class="btn-del" onclick="deleteStock(${idx})">&times;</button>`;
+                li.innerHTML = `<div><b>${item.name}</b> (${item.qty}주)</div><div>₩${Math.round(totalKRW).toLocaleString()}</div><button class="btn-del" onclick="portfolio.splice(${idx},1); localStorage.setItem('rulefit_portfolio', JSON.stringify(portfolio)); render();">&times;</button>`;
                 list.appendChild(li);
             });
-
-            document.getElementById('annualKRW').innerText = `₩${Math.round(totalAnnualUSD * usdKrwRate).toLocaleString()}`;
-            document.getElementById('monthlyKRW').innerText = `₩${Math.round((totalAnnualUSD * usdKrwRate)/12).toLocaleString()}`;
-            
-            if (!dividendChart) {
-                dividendChart = new Chart(document.getElementById('dividendChart'), { type: 'bar', data: { labels: Array.from({length:12}, (_,i)=>i+1), datasets: [{ data: monthlyData.map(v=>v*usdKrwRate), backgroundColor: '#10b981' }] }, options: { plugins: { legend: { display: false } } } });
-            } else {
-                dividendChart.data.datasets[0].data = monthlyData.map(v=>v*usdKrwRate);
-                dividendChart.update();
-            }
         }
-
-        fetchExchangeRate().then(render);
+        render();
     </script>
 </body>
 </html>

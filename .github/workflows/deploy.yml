@@ -2,12 +2,14 @@ name: Update Dividend Data
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 매일 00:00 UTC 자동 실행
-  workflow_dispatch: # 수동 실행 가능
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 깃허브 저장소 쓰기 권한 부여
     steps:
       - uses: actions/checkout@v3
 
@@ -18,7 +20,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install yfinance
+          python -m pip install --upgrade pip
+          pip install yfinance curl_cffi
 
       - name: Fetch Data
         run: |

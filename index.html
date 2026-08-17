@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>자동 연동 배당 가계부</title>
+    <!-- 상승 그래프 파비콘 아이콘 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -445,14 +447,14 @@
 
         closeModal();
         render();
-        await syncTargetsToGithub(); // GitHub의 targets.json 자동 수정 호출
+        await syncTargetsToGithub();
     }
 
     async function deleteStock(index) {
         if (confirm('해당 종목을 삭제하시겠습니까?')) {
             myPortfolio.splice(index, 1);
             render();
-            await syncTargetsToGithub(); // GitHub의 targets.json 자동 수정 호출
+            await syncTargetsToGithub();
         }
     }
 

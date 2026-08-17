@@ -1,494 +1,144 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>자동 연동 배당 가계부</title>
-    <!-- 상승 그래프 파비콘 아이콘 -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --primary: #10b981;
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --border: #334155;
-            --danger: #f43f5e;
-            --accent: #38bdf8;
+import json
+import urllib.request
+import re
+from bs4 import BeautifulSoup
+import yfinance as yf
+
+def get_exchange_rate():
+    try:
+        url = "https://finance.naver.com/marketindex/exchangeDetail.naver?marketindexCd=FX_USDKRW"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        html = urllib.request.urlopen(req).read().decode('euc-kr', errors='replace')
+        soup = BeautifulSoup(html, 'html.parser')
+        rate_text = soup.select_one('p.no_today').text.strip()
+        rate = float(rate_text.replace(',', ''))
+        return rate
+    except Exception as e:
+        print(f"환율 수집 실패 (기본값 1350원 사용): {e}")
+        return 1350.0
+
+def get_kr_stock_data(code):
+    """네이버 증권에서 국내 주식 현재가, 주당 배당금, 배당월 수집"""
+    code = code.replace('.KS', '').replace('.KQ', '')
+    url = f"https://finance.naver.com/item/main.naver?code={code}"
+    
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        html = urllib.request.urlopen(req).read().decode('euc-kr', errors='replace')
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # 1. 현재가 수집
+        no_today = soup.select_one('.no_today .blind')
+        price = float(no_today.text.replace(',', '')) if no_today else 0.0
+
+        # 2. 기업개요/재무제표 표에서 주당배당금(원) 추출
+        div_per_share = 0.0
+        months = []
+
+        cop_analysis = soup.select_one('.section.cop_analysis')
+        if cop_analysis:
+            th_list = cop_analysis.select('thead tr:nth-of-type(2) th')
+            # 최근 결산/예상 연월 추출 (예: 2023.12, 2024.12 등)
+            recent_months = []
+            for th in th_list:
+                txt = th.text.strip()
+                m = re.search(r'\d{4}\.(\d{2})', txt)
+                if m:
+                    recent_months.append(int(m.group(1)))
+
+            # 주당배당금(원) 행 찾기
+            trs = cop_analysis.select('tbody tr')
+            for tr in trs:
+                title_td = tr.select_one('th')
+                if title_td and '주당배당금' in title_td.text:
+                    tds = tr.select('td')
+                    # 가장 최근 확정/예상 배당금 수치 가져오기
+                    for td in reversed(tds):
+                        val_str = td.text.strip().replace(',', '')
+                        if val_str and val_str != '-':
+                            try:
+                                div_per_share = float(val_str)
+                                break
+                            except ValueError:
+                                continue
+                    break
+
+        # 기본 배당월 추정 (분기배당/결산배당)
+        # 분기배당/월배당 특수 종목 처리
+        if code in ['005930', '005935', '000660']: # 삼성전자, SK하이닉스 등
+            months = [4, 5, 8, 11]
+        elif code in ['472150']: # TIGER 배당커버드콜액티브 등 월배당 ETF
+            months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        else:
+            months = [4] # 일반 국내 주식 결산배당(4월 지급)
+
+        return {
+            "price": price,
+            "divPerShare": div_per_share,
+            "months": months,
+            "currency": "KRW"
         }
+    except Exception as e:
+        print(f"네이버 수집 실패 [{code}]: {e}")
+        return {"price": 0.0, "divPerShare": 0.0, "months": [], "currency": "KRW"}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 16px;
+def get_us_stock_data(ticker_symbol):
+    """Yahoo Finance에서 미국 주식 데이터 수집"""
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        info = ticker.fast_info
+        price = info.last_price
+
+        # 배당금 및 지급월 수집
+        hist_div = ticker.dividends
+        div_per_share = 0.0
+        months = []
+
+        if not hist_div.empty:
+            recent_1y = hist_div.tail(12)
+            div_per_share = float(recent_1y.sum())
+            months = sorted(list(set(recent_1y.index.month)))
+
+        return {
+            "price": round(price, 2) if price else 0.0,
+            "divPerShare": round(div_per_share, 4),
+            "months": months,
+            "currency": "USD"
         }
+    except Exception as e:
+        print(f"Yahoo 수집 실패 [{ticker_symbol}]: {e}")
+        return {"price": 0.0, "divPerShare": 0.0, "months": [], "currency": "USD"}
 
-        .container { max-width: 850px; margin: 0 auto; }
+def main():
+    try:
+        with open('targets.json', 'r', encoding='utf-8') as f:
+            targets = json.load(f)
+    except Exception as e:
+        print("targets.json 읽기 실패:", e)
+        targets = []
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-        }
-
-        .header h1 { font-size: 1.3rem; margin: 0 0 4px 0; }
-        .header p { font-size: 0.8rem; color: var(--text-sub); margin: 0; }
-
-        .btn-add {
-            background-color: var(--primary);
-            color: #000;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-left: 8px;
-        }
-
-        .btn-token {
-            background-color: #475569;
-            color: #fff;
-            border: none;
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        .summary-card {
-            background: var(--card-bg);
-            padding: 16px 20px;
-            border-radius: 12px;
-            margin-bottom: 12px;
-            border: 1px solid var(--border);
-        }
-
-        .summary-title { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px; }
-        .summary-value { font-size: 1.6rem; font-weight: bold; }
-
-        .section-title { font-size: 1.1rem; font-weight: bold; margin: 24px 0 12px 0; }
-
-        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-        @media (max-width: 600px) { .chart-grid { grid-template-columns: 1fr; } }
-
-        .chart-card { background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
-        .chart-card h4 { margin: 0 0 12px 0; font-size: 0.9rem; color: var(--text-sub); text-align: center; }
-
-        .table-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.85rem; white-space: nowrap; }
-        th { background: #111827; color: var(--text-sub); padding: 12px 8px; font-weight: normal; border-bottom: 1px solid var(--border); }
-        td { padding: 12px 8px; border-bottom: 1px solid var(--border); }
-
-        .badge-acc { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; background: #334155; color: #38bdf8; }
-        .btn-action { background: none; border: none; cursor: pointer; font-size: 0.9rem; margin: 0 2px; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 999; }
-        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 80%; max-width: 350px; }
-        .modal-content input, .modal-content select { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 6px; }
-        .modal-btns { display: flex; justify-content: space-between; margin-top: 12px; }
-        .modal-btns button { width: 48%; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="header">
-        <div>
-            <h1>자동 연동 배당 가계부</h1>
-            <p>종목 추가 시 targets.json 자동 업데이트 지원</p>
-        </div>
-        <div>
-            <button class="btn-token" onclick="setGithubToken()">🔑 토큰 설정</button>
-            <button class="btn-add" onclick="openModal('add')">+ 종목 추가</button>
-        </div>
-    </div>
-
-    <div class="summary-card">
-        <div class="summary-title">총 매수 금액</div>
-        <div class="summary-value" id="total-invest">0 원</div>
-    </div>
-
-    <div class="summary-card">
-        <div class="summary-title">연간 예상 실수령 배당금 (세후)</div>
-        <div class="summary-value" style="color: var(--primary);" id="total-dividend">0 원</div>
-    </div>
-
-    <div class="summary-card">
-        <div class="summary-title">평균 세후 배당수익률</div>
-        <div class="summary-value" style="color: #818cf8;" id="avg-yield">0.00 %</div>
-    </div>
-
-    <div class="section-title">배당 분석 시각화</div>
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h4>월별 실수령 배당금 추이 (원)</h4>
-            <canvas id="monthlyChart"></canvas>
-        </div>
-        <div class="chart-card">
-            <h4>종목별 세후 배당 비중</h4>
-            <canvas id="portfolioChart"></canvas>
-        </div>
-    </div>
-
-    <div class="section-title">보유 종목 리스트</div>
-    <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th>계좌</th><th>종목명/티커</th><th>수량</th><th>내 평단가</th><th>현재가(자동)</th><th>연간 주당 배당금(세후)</th><th>지급월</th><th>관리</th>
-                </tr>
-            </thead>
-            <tbody id="portfolio-body"></tbody>
-        </table>
-    </div>
-
-    <div class="section-title">월별 실수령 배당금 예측표 (원화 기준)</div>
-    <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th>종목명 (계좌)</th>
-                    <th>1월</th><th>2월</th><th>3월</th><th>4월</th><th>5월</th><th>6월</th><th>7월</th><th>8월</th><th>9월</th><th>10월</th><th>11월</th><th>12월</th>
-                    <th style="color: var(--primary);">연간 세후 합계</th>
-                </tr>
-            </thead>
-            <tbody id="monthly-body"></tbody>
-            <tfoot>
-                <tr id="monthly-footer" style="background: #111827; font-weight: bold; color: var(--primary);"></tr>
-            </tfoot>
-        </table>
-    </div>
-</div>
-
-<datalist id="stock-list">
-    <option value="JEPI">JEPI - JP모건 미국 고배당 ETF</option>
-    <option value="JEPQ">JEPQ - JP모건 나스닥 고배당 ETF</option>
-    <option value="GPIX">GPIX - 골드만삭스 S&P500 커버드콜</option>
-    <option value="SCHD">SCHD - 미국 배당성장 ETF</option>
-    <option value="AAPL">AAPL - 애플</option>
-    <option value="005930.KS">삼성전자 (005930.KS)</option>
-    <option value="005935.KS">삼성전자우 (005935.KS)</option>
-    <option value="000660.KS">SK하이닉스 (000660.KS)</option>
-    <option value="006400.KS">삼성SDI (006400.KS)</option>
-    <option value="005387.KS">현대차2우B (005387.KS)</option>
-    <option value="034020.KS">두산에너빌리티 (034020.KS)</option>
-    <option value="472150.KS">TIGER 배당커버드콜액티브 (472150.KS)</option>
-</datalist>
-
-<div class="modal" id="stockModal">
-    <div class="modal-content">
-        <h3 id="modal-title">종목 추가</h3>
-        <input type="hidden" id="edit-index">
-        <select id="input-account">
-            <option value="일반">일반 계좌</option>
-            <option value="ISA">ISA 계좌</option>
-            <option value="연금저축/IRP">연금저축 / IRP</option>
-        </select>
-        <input type="text" id="input-name" list="stock-list" placeholder="종목명 또는 티커/번호 입력">
-        <input type="number" id="input-qty" placeholder="수량">
-        <input type="number" id="input-price" placeholder="평단가" step="any">
-        <div class="modal-btns">
-            <button onclick="closeModal()" style="background: #475569; color: white;">취소</button>
-            <button onclick="saveStock()" style="background: var(--primary); color: black;">저장</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    const GITHUB_REPO = "pabusu84/RuleFit";
-    let marketData = { stocks: {}, exchangeRate: 1350 };
-    let barChartInstance = null;
-    let pieChartInstance = null;
-
-    // 한국 종목 코드 및 기본 배당월 매핑
-    const KOREAN_STOCK_MAP = {
-        "005930": { name: "삼성전자", ticker: "005930.KS", defaultMonths: [5, 8, 11, 4] },
-        "005930.KS": { name: "삼성전자", ticker: "005930.KS", defaultMonths: [5, 8, 11, 4] },
-        "005935": { name: "삼성전자우", ticker: "005935.KS", defaultMonths: [5, 8, 11, 4] },
-        "005935.KS": { name: "삼성전자우", ticker: "005935.KS", defaultMonths: [5, 8, 11, 4] },
-        "000660": { name: "SK하이닉스", ticker: "000660.KS", defaultMonths: [5, 8, 11, 4] },
-        "000660.KS": { name: "SK하이닉스", ticker: "000660.KS", defaultMonths: [5, 8, 11, 4] },
-        "006400": { name: "삼성SDI", ticker: "006400.KS", defaultMonths: [4] },
-        "006400.KS": { name: "삼성SDI", ticker: "006400.KS", defaultMonths: [4] },
-        "005387": { name: "현대차2우B", ticker: "005387.KS", defaultMonths: [4, 8, 11] },
-        "005387.KS": { name: "현대차2우B", ticker: "005387.KS", defaultMonths: [4, 8, 11] },
-        "034020": { name: "두산에너빌리티", ticker: "034020.KS", defaultMonths: [4] },
-        "034020.KS": { name: "두산에너빌리티", ticker: "034020.KS", defaultMonths: [4] },
-        "472150": { name: "TIGER 배당커버드콜액티브", ticker: "472150.KS", defaultMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
-        "472150.KS": { name: "TIGER 배당커버드콜액티브", ticker: "472150.KS", defaultMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
-        "AAPL": { name: "AAPL", ticker: "AAPL", defaultMonths: [2, 5, 8, 11] }
-    };
-
-    let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
-        { account: "일반", name: "GPIX", qty: 287, price: 54.96 },
-        { account: "일반", name: "JEPQ", qty: 200, price: 54.50 }
-    ];
-
-    async function init() {
-        try {
-            const res = await fetch('./data.json?t=' + new Date().getTime());
-            if (res.ok) marketData = await res.json();
-        } catch (e) { console.error("data.json 로드 실패", e); }
-        render();
+    exchange_rate = get_exchange_rate()
+    result_data = {
+        "exchangeRate": exchange_rate,
+        "stocks": {}
     }
 
-    function setGithubToken() {
-        const token = prompt("GitHub Personal Access Token을 입력하세요:", localStorage.getItem('ghToken') || '');
-        if (token !== null) {
-            localStorage.setItem('ghToken', token.trim());
-            alert("토큰이 저장되었습니다!");
-        }
-    }
+    for t in targets:
+        t_clean = t.strip().upper()
+        print(f"[{t_clean}] 데이터 수집 중...")
+        
+        # 한국 주식 처리 (.KS, .KQ 또는 6자리 숫자)
+        if t_clean.endswith('.KS') or t_clean.endswith('.KQ') or (len(t_clean) == 6 and t_clean.isdigit()):
+            data = get_kr_stock_data(t_clean)
+        else:
+            data = get_us_stock_data(t_clean)
 
-    function cleanStr(str) { return (str || '').toString().replace(/\s+/g, '').toUpperCase(); }
+        result_data["stocks"][t_clean] = data
 
-    function getTicker(rawName) {
-        const key = cleanStr(rawName);
-        if (KOREAN_STOCK_MAP[key]) return KOREAN_STOCK_MAP[key].ticker;
-        return rawName.toUpperCase();
-    }
+    with open('data.json', 'w', encoding='utf-8') as f:
+        json.dump(result_data, f, ensure_ascii=False, indent=2)
 
-    function getDisplayName(rawName) {
-        const key = cleanStr(rawName);
-        if (KOREAN_STOCK_MAP[key]) return KOREAN_STOCK_MAP[key].name;
-        return rawName.toUpperCase();
-    }
+    print("data.json 저장 완료!")
 
-    function getDefaultMonths(rawName) {
-        const key = cleanStr(rawName);
-        if (KOREAN_STOCK_MAP[key]) return KOREAN_STOCK_MAP[key].defaultMonths;
-        return [];
-    }
-
-    async function syncTargetsToGithub() {
-        const token = localStorage.getItem('ghToken');
-        if (!token) {
-            alert("⚠️ GitHub 토큰이 설정되지 않았습니다.\n[🔑 토큰 설정] 버튼을 눌러 토큰을 등록하면 targets.json이 자동 갱신됩니다.");
-            return;
-        }
-
-        const targets = Array.from(new Set(myPortfolio.map(item => getTicker(item.name))));
-        const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/targets.json`;
-
-        try {
-            const getRes = await fetch(url, { headers: { Authorization: `token ${token}` } });
-            let sha = "";
-            if (getRes.ok) {
-                const getData = await getRes.json();
-                sha = getData.sha;
-            }
-
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(targets, null, 2))));
-            const putRes = await fetch(url, {
-                method: "PUT",
-                headers: {
-                    Authorization: `token ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    message: "Auto update targets.json from Web App",
-                    content: content,
-                    sha: sha
-                })
-            });
-
-            if (putRes.ok) {
-                alert("✅ GitHub targets.json이 성공적으로 자동 업데이트되었습니다!\n약 1~2분 후 파이썬 수집기가 동작하여 최신 시세를 수집합니다.");
-            } else {
-                alert("❌ GitHub 연동 실패: 토큰 권한을 확인해 주세요.");
-            }
-        } catch (e) {
-            alert("⚠️ GitHub API 통신 오류: " + e.message);
-        }
-    }
-
-    function findLiveData(name) {
-        if (!marketData.stocks) return {};
-        const targetTicker = cleanStr(getTicker(name));
-        for (let key in marketData.stocks) {
-            if (cleanStr(key) === targetTicker) return marketData.stocks[key];
-        }
-        return {};
-    }
-
-    function render() {
-        const tbody = document.getElementById('portfolio-body');
-        tbody.innerHTML = '';
-
-        let totalInvestKRW = 0, totalNetDividendKRW = 0;
-        const rate = marketData.exchangeRate || 1350;
-        const monthTotals = new Array(12).fill(0);
-        const monthlyRows = [], stockDivSums = [];
-
-        myPortfolio.forEach((item, index) => {
-            const accType = item.account || "일반";
-            const displayName = getDisplayName(item.name);
-            const liveData = findLiveData(item.name);
-
-            const curPrice = liveData.price || 0;
-            const rawDivPerShare = liveData.divPerShare || 0;
-            
-            // 수집된 배당월이 없으면 기본 매핑 배당월 사용
-            let months = (liveData.months && liveData.months.length > 0) ? liveData.months : getDefaultMonths(item.name);
-            const monthsText = months.length > 0 ? months.join(',') + '월' : '-';
-
-            const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
-            const taxRate = (accType === "ISA" || accType === "연금저축/IRP") ? 0.0 : (isUSD ? 0.15 : 0.154);
-            const netDivPerShare = rawDivPerShare * (1 - taxRate);
-
-            const investKRW = (item.qty * item.price) * (isUSD ? rate : 1);
-            const netDividendKRW = (item.qty * netDivPerShare) * (isUSD ? rate : 1);
-
-            totalInvestKRW += investKRW;
-            totalNetDividendKRW += netDividendKRW;
-            stockDivSums.push({ name: `${displayName}(${accType})`, value: Math.round(netDividendKRW) });
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><span class="badge-acc">${accType}</span></td>
-                <td><strong>${displayName}</strong></td>
-                <td>${item.qty}주</td>
-                <td>${item.price.toLocaleString()}</td>
-                <td style="color: var(--accent);">${curPrice ? curPrice.toLocaleString() : '0'}</td>
-                <td style="color: var(--primary);">${netDivPerShare ? netDivPerShare.toFixed(2) : '0'}</td>
-                <td>${monthsText}</td>
-                <td>
-                    <button class="btn-action" onclick="openModal('edit', ${index})">✏️</button>
-                    <button class="btn-action" onclick="deleteStock(${index})" style="color:var(--danger)">🗑️</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-
-            const divPerOccurence = months.length > 0 ? netDividendKRW / months.length : 0;
-            const rowDivs = new Array(12).fill(0);
-
-            months.forEach(m => {
-                if (m >= 1 && m <= 12) {
-                    rowDivs[m - 1] = divPerOccurence;
-                    monthTotals[m - 1] += divPerOccurence;
-                }
-            });
-
-            monthlyRows.push({ name: `${displayName} (${accType})`, divs: rowDivs, total: netDividendKRW });
-        });
-
-        document.getElementById('total-invest').innerText = Math.round(totalInvestKRW).toLocaleString() + ' 원';
-        document.getElementById('total-dividend').innerText = Math.round(totalNetDividendKRW).toLocaleString() + ' 원';
-        const avgYield = totalInvestKRW > 0 ? ((totalNetDividendKRW / totalInvestKRW) * 100).toFixed(2) : "0.00";
-        document.getElementById('avg-yield').innerText = avgYield + ' %';
-
-        renderMonthlyTable(monthlyRows, monthTotals, totalNetDividendKRW);
-        renderCharts(monthTotals, stockDivSums);
-
-        localStorage.setItem('myPortfolio', JSON.stringify(myPortfolio));
-    }
-
-    function renderMonthlyTable(rows, totals, grandTotal) {
-        const mBody = document.getElementById('monthly-body');
-        const mFooter = document.getElementById('monthly-footer');
-        mBody.innerHTML = '';
-
-        rows.forEach(row => {
-            const tr = document.createElement('tr');
-            let cells = `<td><strong>${row.name}</strong></td>`;
-            row.divs.forEach(val => { cells += `<td>${val > 0 ? Math.round(val).toLocaleString() : '-'}</td>`; });
-            cells += `<td style="font-weight:bold; color:var(--primary);">${Math.round(row.total).toLocaleString()} 원</td>`;
-            tr.innerHTML = cells;
-            mBody.appendChild(tr);
-        });
-
-        let footerCells = `<td>합계</td>`;
-        totals.forEach(sum => { footerCells += `<td>${sum > 0 ? Math.round(sum).toLocaleString() : '0'}</td>`; });
-        footerCells += `<td style="color:#10b981;">${Math.round(grandTotal).toLocaleString()} 원</td>`;
-        mFooter.innerHTML = footerCells;
-    }
-
-    function renderCharts(monthlyTotals, stockDivSums) {
-        const ctxBar = document.getElementById('monthlyChart').getContext('2d');
-        if (barChartInstance) barChartInstance.destroy();
-        barChartInstance = new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
-                datasets: [{ label: '실수령 배당금 (원)', data: monthlyTotals.map(v => Math.round(v)), backgroundColor: '#10b981', borderRadius: 4 }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { display: false } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } } } }
-        });
-
-        const ctxPie = document.getElementById('portfolioChart').getContext('2d');
-        if (pieChartInstance) pieChartInstance.destroy();
-        pieChartInstance = new Chart(ctxPie, {
-            type: 'doughnut',
-            data: { labels: stockDivSums.map(s => s.name), datasets: [{ data: stockDivSums.map(s => s.value), backgroundColor: ['#10b981', '#38bdf8', '#818cf8', '#f43f5e', '#fbbf24', '#a855f7'] }] },
-            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', boxWidth: 12 } } } }
-        });
-    }
-
-    function openModal(mode, index = null) {
-        const modal = document.getElementById('stockModal');
-        const title = document.getElementById('modal-title');
-        if (mode === 'edit') {
-            title.innerText = '종목 수정';
-            const item = myPortfolio[index];
-            document.getElementById('edit-index').value = index;
-            document.getElementById('input-account').value = item.account || "일반";
-            document.getElementById('input-name').value = item.name;
-            document.getElementById('input-qty').value = item.qty;
-            document.getElementById('input-price').value = item.price;
-        } else {
-            title.innerText = '종목 추가';
-            document.getElementById('edit-index').value = '';
-            document.getElementById('input-account').value = "일반";
-            document.getElementById('input-name').value = '';
-            document.getElementById('input-qty').value = '';
-            document.getElementById('input-price').value = '';
-        }
-        modal.style.display = 'flex';
-    }
-
-    function closeModal() { document.getElementById('stockModal').style.display = 'none'; }
-
-    async function saveStock() {
-        const indexStr = document.getElementById('edit-index').value;
-        const account = document.getElementById('input-account').value;
-        let name = document.getElementById('input-name').value.trim();
-        const qty = parseFloat(document.getElementById('input-qty').value);
-        const price = parseFloat(document.getElementById('input-price').value);
-
-        if (!name || isNaN(qty) || isNaN(price)) {
-            alert('올바른 데이터를 입력해주세요.');
-            return;
-        }
-
-        if (indexStr !== '') {
-            myPortfolio[parseInt(indexStr)] = { account, name, qty, price };
-        } else {
-            myPortfolio.push({ account, name, qty, price });
-        }
-
-        closeModal();
-        render();
-        await syncTargetsToGithub();
-    }
-
-    async function deleteStock(index) {
-        if (confirm('해당 종목을 삭제하시겠습니까?')) {
-            myPortfolio.splice(index, 1);
-            render();
-            await syncTargetsToGithub();
-        }
-    }
-
-    window.onload = init;
-</script>
-</body>
-</html>
+if __name__ == '__main__':
+    main()

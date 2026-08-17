@@ -147,7 +147,7 @@
             </div>
         </div>
 
-        <!-- 3. 보유 종목 리스트 카드 (배당금 합계 열 위치 변경) -->
+        <!-- 3. 보유 종목 리스트 카드 -->
         <div class="card">
             <div class="card-title">📋 보유 종목 리스트</div>
             <div class="table-container">
@@ -155,7 +155,7 @@
                     <thead>
                         <tr>
                             <th>종목명</th>
-                            <th>연 배당금(세후)</th>
+                            <th>연 배당금 (세후 배당률)</th>
                             <th>주당 배당금</th>
                             <th>수량</th>
                             <th>내 평단가</th>
@@ -222,13 +222,16 @@
                 const priceKRW = isUSD ? Math.round(info.price * rate) : info.price;
                 const divKRWPerShare = isUSD ? (info.divPerShare * rate) : info.divPerShare;
 
-                // 총 매수 금액
+                // 매수 원금
                 const investKRW = isUSD ? (item.qty * item.avg * rate) : (item.qty * item.avg);
                 totalInvest += investKRW;
 
                 // 연간 세후 배당금
                 const annualDivKRW = item.qty * divKRWPerShare * 0.846;
                 totalDiv += annualDivKRW;
+
+                // 세후 배당률 계산 (매수 원금 대비 세후 수익률)
+                const yieldRate = investKRW > 0 ? ((annualDivKRW / investKRW) * 100).toFixed(1) : "0.0";
 
                 // 월별 배당금 분배
                 const months = (info.months && info.months.length > 0) ? info.months : [4];
@@ -237,11 +240,11 @@
                     if (m >= 1 && m <= 12) monthlyTotals[m - 1] += divPerMonth;
                 });
 
-                // 표 행 추가 (연 배당금 합계를 주당 배당금 앞으로 이동)
+                // 표 행 추가 (연 배당금 + 세후 배당률 괄호 표기)
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><b>${item.name}</b> <span class="account-badge">(${item.account})</span></td>
-                    <td style="color:#10b981;"><b>${Math.round(annualDivKRW).toLocaleString()}원</b></td>
+                    <td style="color:#10b981;"><b>${Math.round(annualDivKRW).toLocaleString()}원</b> <span style="font-size:0.75rem; color:#94a3b8;">(${yieldRate}%)</span></td>
                     <td style="color:#10b981;">${divPerShareText}</td>
                     <td>${item.qty}주</td>
                     <td>${isUSD ? '$' + item.avg : item.avg.toLocaleString()}</td>

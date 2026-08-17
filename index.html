@@ -25,10 +25,7 @@
             padding: 16px;
         }
 
-        .container {
-            max-width: 850px;
-            margin: 0 auto;
-        }
+        .container { max-width: 850px; margin: 0 auto; }
 
         .header {
             display: flex;
@@ -52,6 +49,17 @@
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
+            margin-left: 8px;
+        }
+
+        .btn-token {
+            background-color: #475569;
+            color: #fff;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
         }
 
         .summary-card {
@@ -65,128 +73,27 @@
         .summary-title { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px; }
         .summary-value { font-size: 1.6rem; font-weight: bold; }
 
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin: 24px 0 12px 0;
-            color: var(--text-main);
-        }
+        .section-title { font-size: 1.1rem; font-weight: bold; margin: 24px 0 12px 0; }
 
-        .chart-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        @media (max-width: 600px) { .chart-grid { grid-template-columns: 1fr; } }
 
-        @media (max-width: 600px) {
-            .chart-grid { grid-template-columns: 1fr; }
-        }
+        .chart-card { background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+        .chart-card h4 { margin: 0 0 12px 0; font-size: 0.9rem; color: var(--text-sub); text-align: center; }
 
-        .chart-card {
-            background: var(--card-bg);
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-        }
+        .table-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.85rem; white-space: nowrap; }
+        th { background: #111827; color: var(--text-sub); padding: 12px 8px; font-weight: normal; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 8px; border-bottom: 1px solid var(--border); }
 
-        .chart-card h4 {
-            margin: 0 0 12px 0;
-            font-size: 0.9rem;
-            color: var(--text-sub);
-            text-align: center;
-        }
+        .badge-acc { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; background: #334155; color: #38bdf8; }
+        .btn-action { background: none; border: none; cursor: pointer; font-size: 0.9rem; margin: 0 2px; }
 
-        .table-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            overflow-x: auto;
-            margin-bottom: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: center;
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-
-        th {
-            background: #111827;
-            color: var(--text-sub);
-            padding: 12px 8px;
-            font-weight: normal;
-            border-bottom: 1px solid var(--border);
-        }
-
-        td {
-            padding: 12px 8px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .badge-acc {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            background: #334155;
-            color: #38bdf8;
-        }
-
-        .btn-action {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin: 0 2px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            justify-content: center;
-            align-items: center;
-            z-index: 999;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            width: 80%;
-            max-width: 350px;
-        }
-
-        .modal-content input, .modal-content select {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            box-sizing: border-box;
-            background: #0f172a;
-            border: 1px solid var(--border);
-            color: #fff;
-            border-radius: 6px;
-        }
-
-        .modal-btns {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 12px;
-        }
-
-        .modal-btns button {
-            width: 48%;
-            padding: 10px;
-            border-radius: 6px;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 999; }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 80%; max-width: 350px; }
+        .modal-content input, .modal-content select { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 6px; }
+        .modal-btns { display: flex; justify-content: space-between; margin-top: 12px; }
+        .modal-btns button { width: 48%; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -195,9 +102,12 @@
     <div class="header">
         <div>
             <h1>자동 연동 배당 가계부</h1>
-            <p>티커·종목번호 자동완성 및 한국 주식 한글명 표시 지원</p>
+            <p>종목 추가 시 targets.json 자동 업데이트 지원</p>
         </div>
-        <button class="btn-add" onclick="openModal('add')">+ 종목 추가</button>
+        <div>
+            <button class="btn-token" onclick="setGithubToken()">🔑 토큰 설정</button>
+            <button class="btn-add" onclick="openModal('add')">+ 종목 추가</button>
+        </div>
     </div>
 
     <div class="summary-card">
@@ -215,7 +125,6 @@
         <div class="summary-value" style="color: #818cf8;" id="avg-yield">0.00 %</div>
     </div>
 
-    <!-- 차트 구역 -->
     <div class="section-title">배당 분석 시각화</div>
     <div class="chart-grid">
         <div class="chart-card">
@@ -228,36 +137,25 @@
         </div>
     </div>
 
-    <!-- 보유 종목 리스트 -->
     <div class="section-title">보유 종목 리스트</div>
     <div class="table-card">
         <table>
             <thead>
                 <tr>
-                    <th>계좌</th>
-                    <th>종목명/티커</th>
-                    <th>수량</th>
-                    <th>내 평단가</th>
-                    <th>현재가(자동)</th>
-                    <th>연간 주당 배당금(세후)</th>
-                    <th>지급월</th>
-                    <th>관리</th>
+                    <th>계좌</th><th>종목명/티커</th><th>수량</th><th>내 평단가</th><th>현재가(자동)</th><th>연간 주당 배당금(세후)</th><th>지급월</th><th>관리</th>
                 </tr>
             </thead>
             <tbody id="portfolio-body"></tbody>
         </table>
     </div>
 
-    <!-- 월별 배당금 표 -->
     <div class="section-title">월별 실수령 배당금 예측표 (원화 기준)</div>
     <div class="table-card">
         <table>
             <thead>
                 <tr>
                     <th>종목명 (계좌)</th>
-                    <th>1월</th><th>2월</th><th>3월</th><th>4월</th>
-                    <th>5월</th><th>6월</th><th>7월</th><th>8월</th>
-                    <th>9월</th><th>10월</th><th>11월</th><th>12월</th>
+                    <th>1월</th><th>2월</th><th>3월</th><th>4월</th><th>5월</th><th>6월</th><th>7월</th><th>8월</th><th>9월</th><th>10월</th><th>11월</th><th>12월</th>
                     <th style="color: var(--primary);">연간 세후 합계</th>
                 </tr>
             </thead>
@@ -269,23 +167,17 @@
     </div>
 </div>
 
-<!-- 종목 입력 드롭다운 자동완성 목록 -->
 <datalist id="stock-list">
     <option value="JEPI">JEPI - JP모건 미국 고배당 ETF</option>
     <option value="JEPQ">JEPQ - JP모건 나스닥 고배당 ETF</option>
     <option value="GPIX">GPIX - 골드만삭스 S&P500 커버드콜</option>
     <option value="SCHD">SCHD - 미국 배당성장 ETF</option>
-    <option value="O">O - 리얼티인컴</option>
     <option value="005930.KS">삼성전자 (005930.KS)</option>
     <option value="005935.KS">삼성전자우 (005935.KS)</option>
     <option value="000660.KS">SK하이닉스 (000660.KS)</option>
-    <option value="005387.KS">현대차2우B (005387.KS)</option>
-    <option value="006400.KS">삼성SDI (006400.KS)</option>
-    <option value="034020.KS">두산에너빌리티 (034020.KS)</option>
     <option value="472150.KS">TIGER 배당커버드콜액티브 (472150.KS)</option>
 </datalist>
 
-<!-- 모달 -->
 <div class="modal" id="stockModal">
     <div class="modal-content">
         <h3 id="modal-title">종목 추가</h3>
@@ -296,8 +188,8 @@
             <option value="연금저축/IRP">연금저축 / IRP</option>
         </select>
         <input type="text" id="input-name" list="stock-list" placeholder="종목명 또는 티커/번호 입력">
-        <input type="number" id="input-qty" placeholder="수량 (예: 10)">
-        <input type="number" id="input-price" placeholder="평단가 (원/달러)" step="any">
+        <input type="number" id="input-qty" placeholder="수량">
+        <input type="number" id="input-price" placeholder="평단가" step="any">
         <div class="modal-btns">
             <button onclick="closeModal()" style="background: #475569; color: white;">취소</button>
             <button onclick="saveStock()" style="background: var(--primary); color: black;">저장</button>
@@ -306,59 +198,86 @@
 </div>
 
 <script>
-    // 모바일 진단용 자바스크립트 오류 팝업
-    window.onerror = function(msg, url, line) {
-        alert("⚠️ [앱 자바스크립트 오류]\n내용: " + msg + "\n줄 번호: " + line);
-        return false;
-    };
-
+    const GITHUB_REPO = "pabusu84/RuleFit"; // GitHub 저장소 경로
     let marketData = { stocks: {}, exchangeRate: 1350 };
     let barChartInstance = null;
     let pieChartInstance = null;
-    
-    // 한국 종목 티커 -> 한글 이름 매핑
+
     const KOREAN_STOCK_MAP = {
         "005930": "삼성전자", "005930.KS": "삼성전자",
         "005935": "삼성전자우", "005935.KS": "삼성전자우",
         "000660": "SK하이닉스", "000660.KS": "SK하이닉스",
-        "005387": "현대차2우B", "005387.KS": "현대차2우B",
-        "006400": "삼성SDI", "006400.KS": "삼성SDI",
-        "034020": "두산에너빌리티", "034020.KS": "두산에너빌리티",
         "472150": "TIGER 배당커버드콜액티브", "472150.KS": "TIGER 배당커버드콜액티브"
     };
 
     let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
-        { account: "일반", name: "JEPI", qty: 373, price: 57.09 },
         { account: "일반", name: "GPIX", qty: 287, price: 54.96 },
-        { account: "일반", name: "005930.KS", qty: 55, price: 269454 }
+        { account: "일반", name: "JEPQ", qty: 200, price: 54.50 }
     ];
 
     async function init() {
         try {
             const res = await fetch('./data.json?t=' + new Date().getTime());
-            
-            if (!res.ok) {
-                alert("⚠️ data.json 파일을 찾을 수 없습니다.\n(상태 코드: " + res.status + ")\nGitHub에 data.json이 정상 생성되었는지 확인해 주세요.");
-                return;
-            }
-            
-            marketData = await res.json();
-        } catch (e) {
-            alert("⚠️ data.json 형식(문법)에 오류가 있습니다!\n내용: " + e.message + "\n\ndata.json 파일에 복사할 때 괄호나 쉼표 오타가 없는지 점검이 필요합니다.");
-            console.error("data.json 로드 오류", e);
-        }
+            if (res.ok) marketData = await res.json();
+        } catch (e) { console.error("data.json 로드 실패", e); }
         render();
     }
 
-    function cleanStr(str) {
-        return (str || '').toString().replace(/\s+/g, '').toUpperCase();
+    function setGithubToken() {
+        const token = prompt("GitHub Personal Access Token을 입력하세요:", localStorage.getItem('ghToken') || '');
+        if (token !== null) {
+            localStorage.setItem('ghToken', token.trim());
+            alert("토큰이 저장되었습니다!");
+        }
     }
+
+    async function syncTargetsToGithub() {
+        const token = localStorage.getItem('ghToken');
+        if (!token) {
+            alert("⚠️ GitHub 토큰이 설정되지 않았습니다.\n[🔑 토큰 설정] 버튼을 눌러 토큰을 등록하면 targets.json이 자동 갱신됩니다.");
+            return;
+        }
+
+        const targets = Array.from(new Set(myPortfolio.map(item => item.name.trim().toUpperCase())));
+        const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/targets.json`;
+
+        try {
+            const getRes = await fetch(url, { headers: { Authorization: `token ${token}` } });
+            let sha = "";
+            if (getRes.ok) {
+                const getData = await getRes.json();
+                sha = getData.sha;
+            }
+
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(targets, null, 2))));
+            const putRes = await fetch(url, {
+                method: "PUT",
+                headers: {
+                    Authorization: `token ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: "Auto update targets.json from Web App",
+                    content: content,
+                    sha: sha
+                })
+            });
+
+            if (putRes.ok) {
+                alert("✅ GitHub targets.json이 성공적으로 자동 업데이트되었습니다!\n약 1~2분 후 파이썬 수집기가 동작하여 최신 시세를 수집합니다.");
+            } else {
+                alert("❌ GitHub 연동 실패: 토큰 권한을 확인해 주세요.");
+            }
+        } catch (e) {
+            alert("⚠️ GitHub API 통신 오류: " + e.message);
+        }
+    }
+
+    function cleanStr(str) { return (str || '').toString().replace(/\s+/g, '').toUpperCase(); }
 
     function getDisplayName(rawName) {
         const key = cleanStr(rawName);
         if (KOREAN_STOCK_MAP[key]) return KOREAN_STOCK_MAP[key];
-        const noKsKey = key.replace(".KS", "");
-        if (KOREAN_STOCK_MAP[noKsKey]) return KOREAN_STOCK_MAP[noKsKey];
         return rawName.toUpperCase();
     }
 
@@ -368,50 +287,34 @@
         for (let key in marketData.stocks) {
             if (cleanStr(key) === target) return marketData.stocks[key];
         }
-        for (let key in marketData.stocks) {
-            const item = marketData.stocks[key];
-            if (item.ticker && cleanStr(item.ticker) === target) return item;
-        }
         return {};
-    }
-
-    function getTaxRate(accountType, isUSD) {
-        if (accountType === "ISA" || accountType === "연금저축/IRP") return 0.0;
-        return isUSD ? 0.15 : 0.154;
     }
 
     function render() {
         const tbody = document.getElementById('portfolio-body');
         tbody.innerHTML = '';
 
-        let totalInvestKRW = 0;
-        let totalNetDividendKRW = 0;
+        let totalInvestKRW = 0, totalNetDividendKRW = 0;
         const rate = marketData.exchangeRate || 1350;
-
         const monthTotals = new Array(12).fill(0);
-        const monthlyRows = [];
-        const stockDivSums = [];
+        const monthlyRows = [], stockDivSums = [];
 
         myPortfolio.forEach((item, index) => {
             const accType = item.account || "일반";
             const displayName = getDisplayName(item.name);
             const liveData = findLiveData(item.name);
-            
+
             const curPrice = liveData.price || 0;
             const rawDivPerShare = liveData.divPerShare || 0;
             const months = liveData.months || [];
             const monthsText = months.length > 0 ? months.join(',') + '월' : '-';
-            
-            const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
 
-            const taxRate = getTaxRate(accType, isUSD);
+            const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
+            const taxRate = (accType === "ISA" || accType === "연금저축/IRP") ? 0.0 : (isUSD ? 0.15 : 0.154);
             const netDivPerShare = rawDivPerShare * (1 - taxRate);
 
-            const investAmount = item.qty * item.price;
-            const netDividendAmount = item.qty * netDivPerShare;
-
-            const investKRW = isUSD ? investAmount * rate : investAmount;
-            const netDividendKRW = isUSD ? netDividendAmount * rate : netDividendAmount;
+            const investKRW = (item.qty * item.price) * (isUSD ? rate : 1);
+            const netDividendKRW = (item.qty * netDivPerShare) * (isUSD ? rate : 1);
 
             totalInvestKRW += investKRW;
             totalNetDividendKRW += netDividendKRW;
@@ -465,18 +368,14 @@
         rows.forEach(row => {
             const tr = document.createElement('tr');
             let cells = `<td><strong>${row.name}</strong></td>`;
-            row.divs.forEach(val => {
-                cells += `<td>${val > 0 ? Math.round(val).toLocaleString() : '-'}</td>`;
-            });
+            row.divs.forEach(val => { cells += `<td>${val > 0 ? Math.round(val).toLocaleString() : '-'}</td>`; });
             cells += `<td style="font-weight:bold; color:var(--primary);">${Math.round(row.total).toLocaleString()} 원</td>`;
             tr.innerHTML = cells;
             mBody.appendChild(tr);
         });
 
         let footerCells = `<td>합계</td>`;
-        totals.forEach(sum => {
-            footerCells += `<td>${sum > 0 ? Math.round(sum).toLocaleString() : '0'}</td>`;
-        });
+        totals.forEach(sum => { footerCells += `<td>${sum > 0 ? Math.round(sum).toLocaleString() : '0'}</td>`; });
         footerCells += `<td style="color:#10b981;">${Math.round(grandTotal).toLocaleString()} 원</td>`;
         mFooter.innerHTML = footerCells;
     }
@@ -488,47 +387,23 @@
             type: 'bar',
             data: {
                 labels: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
-                datasets: [{
-                    label: '실수령 배당금 (원)',
-                    data: monthlyTotals.map(v => Math.round(v)),
-                    backgroundColor: '#10b981',
-                    borderRadius: 4
-                }]
+                datasets: [{ label: '실수령 배당금 (원)', data: monthlyTotals.map(v => Math.round(v)), backgroundColor: '#10b981', borderRadius: 4 }]
             },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
-                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
-                }
-            }
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { display: false } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } } } }
         });
 
         const ctxPie = document.getElementById('portfolioChart').getContext('2d');
         if (pieChartInstance) pieChartInstance.destroy();
         pieChartInstance = new Chart(ctxPie, {
             type: 'doughnut',
-            data: {
-                labels: stockDivSums.map(s => s.name),
-                datasets: [{
-                    data: stockDivSums.map(s => s.value),
-                    backgroundColor: ['#10b981', '#38bdf8', '#818cf8', '#f43f5e', '#fbbf24', '#a855f7']
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#f8fafc', boxWidth: 12 } }
-                }
-            }
+            data: { labels: stockDivSums.map(s => s.name), datasets: [{ data: stockDivSums.map(s => s.value), backgroundColor: ['#10b981', '#38bdf8', '#818cf8', '#f43f5e', '#fbbf24', '#a855f7'] }] },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', boxWidth: 12 } } } }
         });
     }
 
     function openModal(mode, index = null) {
         const modal = document.getElementById('stockModal');
         const title = document.getElementById('modal-title');
-        
         if (mode === 'edit') {
             title.innerText = '종목 수정';
             const item = myPortfolio[index];
@@ -548,11 +423,9 @@
         modal.style.display = 'flex';
     }
 
-    function closeModal() {
-        document.getElementById('stockModal').style.display = 'none';
-    }
+    function closeModal() { document.getElementById('stockModal').style.display = 'none'; }
 
-    function saveStock() {
+    async function saveStock() {
         const indexStr = document.getElementById('edit-index').value;
         const account = document.getElementById('input-account').value;
         let name = document.getElementById('input-name').value.trim();
@@ -572,12 +445,14 @@
 
         closeModal();
         render();
+        await syncTargetsToGithub(); // GitHub의 targets.json 자동 수정 호출
     }
 
-    function deleteStock(index) {
+    async function deleteStock(index) {
         if (confirm('해당 종목을 삭제하시겠습니까?')) {
             myPortfolio.splice(index, 1);
             render();
+            await syncTargetsToGithub(); // GitHub의 targets.json 자동 수정 호출
         }
     }
 

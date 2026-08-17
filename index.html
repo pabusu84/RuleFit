@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>자동 연동 배당 가계부</title>
+    <!-- Chart.js CDN 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -25,7 +27,7 @@
         }
 
         .container {
-            max-width: 700px;
+            max-width: 800px;
             margin: 0 auto;
         }
 
@@ -71,6 +73,31 @@
             color: var(--text-main);
         }
 
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .chart-grid { grid-template-columns: 1fr; }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .chart-card h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            text-align: center;
+        }
+
         .table-card {
             background: var(--card-bg);
             border-radius: 12px;
@@ -108,7 +135,6 @@
             margin: 0 2px;
         }
 
-        /* 모달 스타일 */
         .modal {
             display: none;
             position: fixed;
@@ -180,7 +206,20 @@
         <div class="summary-value" style="color: #818cf8;" id="avg-yield">0.00 %</div>
     </div>
 
-    <!-- 보유 종목 관리 테이블 -->
+    <!-- 차트 구역 -->
+    <div class="section-title">배당 분석 시각화</div>
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h4>월별 배당금 추이 (원)</h4>
+            <canvas id="monthlyChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h4>종목별 배당 비중</h4>
+            <canvas id="portfolioChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 보유 종목 리스트 -->
     <div class="section-title">보유 종목 리스트</div>
     <div class="table-card">
         <table>
@@ -199,16 +238,17 @@
         </table>
     </div>
 
-    <!-- 월별/종목별 배당금 캘린더 테이블 -->
+    <!-- 월별 배당금 표 -->
     <div class="section-title">월별 배당금 예측표 (원화 기준)</div>
     <div class="table-card">
         <table>
             <thead>
-                <tr id="monthly-header">
+                <tr>
                     <th>종목명</th>
                     <th>1월</th><th>2월</th><th>3월</th><th>4월</th>
                     <th>5월</th><th>6월</th><th>7월</th><th>8월</th>
                     <th>9월</th><th>10월</th><th>11월</th><th>12월</th>
+                    <th style="color: var(--primary);">연간 합계</th>
                 </tr>
             </thead>
             <tbody id="monthly-body"></tbody>
@@ -219,7 +259,7 @@
     </div>
 </div>
 
-<!-- 종목 추가/수정 모달 -->
+<!-- 모달 -->
 <div class="modal" id="stockModal">
     <div class="modal-content">
         <h3 id="modal-title">종목 추가</h3>
@@ -236,6 +276,8 @@
 
 <script>
     let marketData = { stocks: {}, exchangeRate: 1350 };
+    let barChartInstance = null;
+    let pieChartInstance = null;
     
     let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
         { name: "JEPI", qty: 373, price: 57.09 },
@@ -246,9 +288,7 @@
     async function init() {
         try {
             const res = await fetch('./data.json?t=' + new Date().getTime());
-            if (res.ok) {
-                marketData = await res.json();
-            }
+            if (res.ok) marketData = await res.json();
         } catch (e) {
             console.error("data.json 로드 오류", e);
         }
@@ -262,7 +302,6 @@
     function findLiveData(name) {
         if (!marketData.stocks) return {};
         const target = cleanStr(name);
-
         for (let key in marketData.stocks) {
             if (cleanStr(key) === target) return marketData.stocks[key];
         }
@@ -281,13 +320,12 @@
         let totalDividendKRW = 0;
         const rate = marketData.exchangeRate || 1350;
 
-        // 월별 합계 배열 (1~12월)
         const monthTotals = new Array(12).fill(0);
         const monthlyRows = [];
+        const stockDivSums = []; // 종목별 연간 배당금 합계
 
         myPortfolio.forEach((item, index) => {
             const liveData = findLiveData(item.name);
-
             const curPrice = liveData.price || 0;
             const divPerShare = liveData.divPerShare || 0;
             const months = liveData.months || [];
@@ -303,8 +341,9 @@
 
             totalInvestKRW += investKRW;
             totalDividendKRW += dividendKRW;
+            stockDivSums.push({ name: item.name, value: Math.round(dividendKRW) });
 
-            // 1. 보유 종목 테이블 로우 추가
+            // 1. 보유 종목 리스트 랜더링
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${item.name}</strong></td>
@@ -320,7 +359,7 @@
             `;
             tbody.appendChild(tr);
 
-            // 2. 월별 배당금 계산
+            // 2. 월별 계산
             const divPerOccurence = months.length > 0 ? dividendKRW / months.length : 0;
             const rowDivs = new Array(12).fill(0);
 
@@ -331,23 +370,23 @@
                 }
             });
 
-            monthlyRows.push({ name: item.name, divs: rowDivs });
+            monthlyRows.push({ name: item.name, divs: rowDivs, total: dividendKRW });
         });
 
-        // 요약 업데이트
+        // 상단 요약 카드
         document.getElementById('total-invest').innerText = Math.round(totalInvestKRW).toLocaleString() + ' 원';
         document.getElementById('total-dividend').innerText = Math.round(totalDividendKRW).toLocaleString() + ' 원';
-        
         const avgYield = totalInvestKRW > 0 ? ((totalDividendKRW / totalInvestKRW) * 100).toFixed(2) : "0.00";
         document.getElementById('avg-yield').innerText = avgYield + ' %';
 
-        // 3. 월별 배당표 랜더링
-        renderMonthlyTable(monthlyRows, monthTotals);
+        // 표 및 차트 그리기
+        renderMonthlyTable(monthlyRows, monthTotals, totalDividendKRW);
+        renderCharts(monthTotals, stockDivSums);
 
         localStorage.setItem('myPortfolio', JSON.stringify(myPortfolio));
     }
 
-    function renderMonthlyTable(rows, totals) {
+    function renderMonthlyTable(rows, totals, grandTotal) {
         const mBody = document.getElementById('monthly-body');
         const mFooter = document.getElementById('monthly-footer');
         mBody.innerHTML = '';
@@ -358,19 +397,67 @@
             row.divs.forEach(val => {
                 cells += `<td>${val > 0 ? Math.round(val).toLocaleString() : '-'}</td>`;
             });
+            // 종목별 연간 합계 추가
+            cells += `<td style="font-weight:bold; color:var(--primary);">${Math.round(row.total).toLocaleString()} 원</td>`;
             tr.innerHTML = cells;
             mBody.appendChild(tr);
         });
 
-        // 월별 합계 (푸터)
+        // 푸터 전체 합계
         let footerCells = `<td>합계</td>`;
         totals.forEach(sum => {
             footerCells += `<td>${sum > 0 ? Math.round(sum).toLocaleString() : '0'}</td>`;
         });
+        footerCells += `<td style="color:#10b981;">${Math.round(grandTotal).toLocaleString()} 원</td>`;
         mFooter.innerHTML = footerCells;
     }
 
-    // 모달 관리 (추가 / 수정)
+    function renderCharts(monthlyTotals, stockDivSums) {
+        // 1. 월별 막대 차트
+        const ctxBar = document.getElementById('monthlyChart').getContext('2d');
+        if (barChartInstance) barChartInstance.destroy();
+        barChartInstance = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+                datasets: [{
+                    label: '월별 배당금 (원)',
+                    data: monthlyTotals.map(v => Math.round(v)),
+                    backgroundColor: '#10b981',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+                }
+            }
+        });
+
+        // 2. 종목별 도넛/파이 차트
+        const ctxPie = document.getElementById('portfolioChart').getContext('2d');
+        if (pieChartInstance) pieChartInstance.destroy();
+        pieChartInstance = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: stockDivSums.map(s => s.name),
+                datasets: [{
+                    data: stockDivSums.map(s => s.value),
+                    backgroundColor: ['#10b981', '#38bdf8', '#818cf8', '#f43f5e', '#fbbf24', '#a855f7']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#f8fafc', boxWidth: 12 } }
+                }
+            }
+        });
+    }
+
     function openModal(mode, index = null) {
         const modal = document.getElementById('stockModal');
         const title = document.getElementById('modal-title');
@@ -408,10 +495,8 @@
         }
 
         if (indexStr !== '') {
-            // 수정
             myPortfolio[parseInt(indexStr)] = { name, qty, price };
         } else {
-            // 추가
             myPortfolio.push({ name, qty, price });
         }
 

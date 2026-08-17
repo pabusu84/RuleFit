@@ -105,12 +105,36 @@
         .card-title { font-size: 1rem; font-weight: bold; margin-bottom: 12px; }
 
         .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; white-space: nowrap; }
-        th, td { padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); }
-        th:first-child, td:first-child { text-align: left; }
-        th { color: var(--sub-text); font-weight: normal; }
+        
+        /* 레이아웃 개선: 화면 폭 맞춤 & 간격 최적화 */
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 0.8rem; 
+        }
+        th, td { 
+            padding: 10px 4px; 
+            text-align: right; 
+            border-bottom: 1px solid var(--border-color); 
+            vertical-align: middle;
+        }
+        
+        /* 종목명 컬럼: 단어 단위 2줄 줄바꿈 적용 */
+        th:first-child, td:first-child { 
+            text-align: left; 
+            white-space: normal !important;
+            word-break: keep-all !important; /* 단어 단위 줄바꿈 */
+            overflow-wrap: break-word;
+            line-height: 1.35;
+            padding-right: 8px;
+        }
 
-        .account-badge { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; }
+        /* 배당금 컬럼: 한눈에 들어오도록 밀착 및 잘림 방지 */
+        td:nth-child(2), th:nth-child(2) {
+            white-space: nowrap;
+        }
+
+        .account-badge { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; white-space: nowrap; }
         
         .chart-wrapper {
             position: relative;
@@ -207,12 +231,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>종목명</th>
-                            <th>연 배당금 (세후 배당률)</th>
+                            <th style="width: 32%;">종목명</th>
+                            <th style="width: 25%;">연 배당금 (배당률)</th>
                             <th>주당 배당금</th>
                             <th>수량</th>
-                            <th>내 평단가</th>
-                            <th>현재가(자동)</th>
+                            <th>평단가</th>
+                            <th>현재가</th>
                             <th style="text-align: center;">관리</th>
                         </tr>
                     </thead>
@@ -258,6 +282,7 @@
     </div>
 
     <script>
+        // 코드 매핑 (숫자 0과 알파벳 O 오입력 모두 방어)
         const STOCK_MAP = {
             "462330.KS": "TIME 미국나스닥100액티브",
             "462330": "TIME 미국나스닥100액티브",
@@ -267,6 +292,8 @@
             "486290": "TIGER 미국나스닥100타겟데일리커버드콜",
             "0177N0.KS": "KODEX 삼성전자SK하이닉스채권혼합50",
             "0177N0": "KODEX 삼성전자SK하이닉스채권혼합50",
+            "0177NO.KS": "KODEX 삼성전자SK하이닉스채권혼합50",
+            "0177NO": "KODEX 삼성전자SK하이닉스채권혼합50",
             "005930.KS": "삼성전자",
             "005935.KS": "삼성전자우",
             "000660.KS": "SK하이닉스",
@@ -285,6 +312,8 @@
             "TIGER 미국나스닥100타겟데일리커버드콜": { name: "TIGER 미국나스닥100타겟데일리커버드콜", price: 11080, divPerShare: 100, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
             "0177N0.KS": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 200, months: [1,4,7,10], currency: "KRW" },
             "0177N0": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 200, months: [1,4,7,10], currency: "KRW" },
+            "0177NO.KS": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 200, months: [1,4,7,10], currency: "KRW" },
+            "0177NO": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 200, months: [1,4,7,10], currency: "KRW" },
             "KODEX 삼성전자SK하이닉스채권혼합50": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 200, months: [1,4,7,10], currency: "KRW" }
         };
 
@@ -329,7 +358,7 @@
             const monthlyTotals = Array(12).fill(0);
 
             const processedList = holdings.map((item, originalIndex) => {
-                const rawCode = item.code || "";
+                const rawCode = (item.code || "").toUpperCase();
                 const cleanCode = rawCode.replace('.KS', '');
                 
                 const backup = BACKUP_STOCKS[rawCode] || BACKUP_STOCKS[cleanCode] || BACKUP_STOCKS[item.name] || {};
@@ -338,7 +367,7 @@
                 const price = info.price || backup.price || 0;
                 const divPerShare = info.divPerShare || backup.divPerShare || 0;
 
-                let displayName = info.name || STOCK_MAP[rawCode] || STOCK_MAP[cleanCode] || item.name;
+                let displayName = STOCK_MAP[rawCode] || STOCK_MAP[cleanCode] || info.name || item.name;
 
                 const isUSD = info.currency === 'USD' || ['GPIX', 'JEPQ', 'AAPL'].includes(rawCode);
                 const divPerShareText = isUSD ? `$${divPerShare.toFixed(2)}` : `${Math.round(divPerShare).toLocaleString()}원`;
@@ -347,7 +376,6 @@
                 
                 const investKRW = isUSD ? (item.qty * item.avg * cachedRate) : (item.qty * item.avg);
                 
-                // 계좌별 실수령 세금 적용 (일반: 15.4% 차감 / ISA, IRP, 연금저축: 100% 비과세/이연)
                 const taxFactor = (item.account === 'ISA' || item.account === 'IRP' || item.account === '연금저축') ? 1.0 : 0.846;
                 const annualDivKRW = item.qty * divKRWPerShare * taxFactor;
                 
@@ -357,7 +385,6 @@
                 return { ...item, name: displayName, originalIndex, info, isUSD, divPerShareText, priceKRW, investKRW, annualDivKRW, yieldRate, months: rawMonths };
             });
 
-            // 정렬 순서: 일반 -> ISA -> IRP -> 연금저축 -> 금액순
             const accountOrder = { "일반": 1, "ISA": 2, "IRP": 3, "연금저축": 4 };
             processedList.sort((a, b) => {
                 const rankA = accountOrder[a.account] || 5;
@@ -378,7 +405,7 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><b>${data.name}</b> <span class="account-badge">(${data.account})</span></td>
-                    <td style="color:#10b981;"><b>${Math.round(data.annualDivKRW).toLocaleString()}원</b> <span style="font-size:0.75rem; color:#94a3b8;">(${data.yieldRate}%)</span></td>
+                    <td style="color:#10b981;"><b>${Math.round(data.annualDivKRW).toLocaleString()}원</b><br><span style="font-size:0.72rem; color:#94a3b8;">(${data.yieldRate}%)</span></td>
                     <td style="color:#10b981;">${data.divPerShareText}</td>
                     <td>${data.qty}주</td>
                     <td>${data.isUSD ? '$' + data.avg : data.avg.toLocaleString()}</td>
@@ -476,21 +503,16 @@
                 return;
             }
 
-            let name = inputVal;
-            let code = inputVal;
+            let code = inputVal.toUpperCase();
 
             if (/^[0-9]{6}$/.test(inputVal)) {
                 code = inputVal + '.KS';
-            } else if (inputVal.endsWith('.KS') || inputVal.endsWith('.KQ')) {
-                code = inputVal.toUpperCase();
-            } else {
-                code = inputVal.toUpperCase();
+            } else if (!code.endsWith('.KS') && !code.endsWith('.KQ') && /^[0-9A-Z]{6}$/.test(code)) {
+                code = code + '.KS';
             }
 
             const cleanCode = code.replace('.KS', '');
-            if (STOCK_MAP[code] || STOCK_MAP[cleanCode]) {
-                name = STOCK_MAP[code] || STOCK_MAP[cleanCode];
-            }
+            let name = STOCK_MAP[code] || STOCK_MAP[cleanCode] || inputVal;
 
             const newHolding = { name, code, qty, avg, account };
 

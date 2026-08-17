@@ -231,7 +231,7 @@
             <input type="hidden" id="edit-index" value="-1">
             <div class="form-group">
                 <label>종목명 / 티커 / 국내코드</label>
-                <input type="text" id="add-search" placeholder="예: TIME 미국나스닥100액티브 또는 AAPL">
+                <input type="text" id="add-search" placeholder="예: 486290 또는 0177N0 또는 AAPL">
             </div>
             <div class="form-group">
                 <label>수량</label>
@@ -263,6 +263,10 @@
             "462330": "TIME 미국나스닥100액티브",
             "426030.KS": "TIME 미국나스닥100액티브",
             "426030": "TIME 미국나스닥100액티브",
+            "486290.KS": "TIGER 미국나스닥100타겟데일리커버드콜",
+            "486290": "TIGER 미국나스닥100타겟데일리커버드콜",
+            "0177N0.KS": "KODEX 삼성전자SK하이닉스채권혼합50",
+            "0177N0": "KODEX 삼성전자SK하이닉스채권혼합50",
             "005930.KS": "삼성전자",
             "005935.KS": "삼성전자우",
             "000660.KS": "SK하이닉스",
@@ -275,7 +279,13 @@
         const BACKUP_STOCKS = {
             "462330.KS": { name: "TIME 미국나스닥100액티브", price: 11000, divPerShare: 120, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
             "426030.KS": { name: "TIME 미국나스닥100액티브", price: 11000, divPerShare: 120, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
-            "TIME 미국나스닥100액티브": { name: "TIME 미국나스닥100액티브", price: 11000, divPerShare: 120, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" }
+            "TIME 미국나스닥100액티브": { name: "TIME 미국나스닥100액티브", price: 11000, divPerShare: 120, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
+            "486290.KS": { name: "TIGER 미국나스닥100타겟데일리커버드콜", price: 11080, divPerShare: 100, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
+            "486290": { name: "TIGER 미국나스닥100타겟데일리커버드콜", price: 11080, divPerShare: 100, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
+            "TIGER 미국나스닥100타겟데일리커버드콜": { name: "TIGER 미국나스닥100타겟데일리커버드콜", price: 11080, divPerShare: 100, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
+            "0177N0.KS": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 200, months: [1,4,7,10], currency: "KRW" },
+            "0177N0": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 200, months: [1,4,7,10], currency: "KRW" },
+            "KODEX 삼성전자SK하이닉스채권혼합50": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 200, months: [1,4,7,10], currency: "KRW" }
         };
 
         const defaultHoldings = [
@@ -337,7 +347,7 @@
                 
                 const investKRW = isUSD ? (item.qty * item.avg * cachedRate) : (item.qty * item.avg);
                 
-                // 계좌별 세후 적용 (일반: 15.4% 차감 = 0.846 곱함 / 절세계좌: 100% 반영 = 1.0 곱함)
+                // 계좌별 실수령 세금 적용 (일반: 15.4% 차감 / ISA, IRP, 연금저축: 100% 비과세/이연)
                 const taxFactor = (item.account === 'ISA' || item.account === 'IRP' || item.account === '연금저축') ? 1.0 : 0.846;
                 const annualDivKRW = item.qty * divKRWPerShare * taxFactor;
                 
@@ -347,7 +357,7 @@
                 return { ...item, name: displayName, originalIndex, info, isUSD, divPerShareText, priceKRW, investKRW, annualDivKRW, yieldRate, months: rawMonths };
             });
 
-            // 정렬 우선순위: 일반 -> ISA -> IRP -> 연금저축, 그 후 보유금액 내림차순
+            // 정렬 순서: 일반 -> ISA -> IRP -> 연금저축 -> 금액순
             const accountOrder = { "일반": 1, "ISA": 2, "IRP": 3, "연금저축": 4 };
             processedList.sort((a, b) => {
                 const rankA = accountOrder[a.account] || 5;

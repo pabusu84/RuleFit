@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>자동 연동 배당 가계부 (계좌별 세금 적용)</title>
+    <title>자동 연동 배당 가계부</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -195,7 +195,7 @@
     <div class="header">
         <div>
             <h1>자동 연동 배당 가계부</h1>
-            <p>계좌 유형별(일반/ISA/연금) 맞춤 세율 자동 반영</p>
+            <p>티커·종목번호 자동완성 및 한국 주식 한글명 표시 지원</p>
         </div>
         <button class="btn-add" onclick="openModal('add')">+ 종목 추가</button>
     </div>
@@ -269,6 +269,23 @@
     </div>
 </div>
 
+<!-- 종목 입력 드롭다운 자동완성 목록 -->
+<datalist id="stock-list">
+    <option value="JEPI">JEPI - JP모건 미국 고배당 ETF</option>
+    <option value="JEPQ">JEPQ - JP모건 나스닥 고배당 ETF</option>
+    <option value="GPIX">GPIX - 골드만삭스 S&P500 커버드콜</option>
+    <option value="SCHD">SCHD - 미국 배당성장 ETF</option>
+    <option value="O">O - 리얼티인컴</option>
+    <option value="삼성전자">삼성전자 (005930)</option>
+    <option value="삼성전자우">삼성전자우 (005935)</option>
+    <option value="SK하이닉스">SK하이닉스 (000660)</option>
+    <option value="현대차2우B">현대차2우B (005387)</option>
+    <option value="삼성SDI">삼성SDI (006400)</option>
+    <option value="두산에너빌리티">두산에너빌리티 (034020)</option>
+    <option value="TIGER 배당커버드콜액티브">TIGER 배당커버드콜액티브 (472150)</option>
+    <option value="TIME 미국나스닥100액티브">TIME 미국나스닥100액티브 (426030)</option>
+</datalist>
+
 <!-- 모달 -->
 <div class="modal" id="stockModal">
     <div class="modal-content">
@@ -279,7 +296,7 @@
             <option value="ISA">ISA 계좌</option>
             <option value="연금저축/IRP">연금저축 / IRP</option>
         </select>
-        <input type="text" id="input-name" placeholder="종목명/티커 (예: JEPI, 삼성전자)">
+        <input type="text" id="input-name" list="stock-list" placeholder="종목명 또는 티커/번호 입력">
         <input type="number" id="input-qty" placeholder="수량 (예: 10)">
         <input type="number" id="input-price" placeholder="평단가 (원/달러)" step="any">
         <div class="modal-btns">
@@ -294,6 +311,18 @@
     let barChartInstance = null;
     let pieChartInstance = null;
     
+    // 한국 종목 티커/번호 -> 한글 이름 매핑 테이블
+    const KOREAN_STOCK_MAP = {
+        "005930": "삼성전자", "005930.KS": "삼성전자",
+        "005935": "삼성전자우", "005935.KS": "삼성전자우",
+        "000660": "SK하이닉스", "000660.KS": "SK하이닉스",
+        "005387": "현대차2우B", "005387.KS": "현대차2우B",
+        "006400": "삼성SDI", "006400.KS": "삼성SDI",
+        "034020": "두산에너빌리티", "034020.KS": "두산에너빌리티",
+        "472150": "TIGER 배당커버드콜액티브", "472150.KS": "TIGER 배당커버드콜액티브",
+        "426030": "TIME 미국나스닥100액티브", "426030.KS": "TIME 미국나스닥100액티브"
+    };
+
     let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
         { account: "일반", name: "JEPI", qty: 373, price: 57.09 },
         { account: "일반", name: "GPIX", qty: 287, price: 54.96 },
@@ -314,6 +343,18 @@
         return (str || '').toString().replace(/\s+/g, '').toUpperCase();
     }
 
+    // 종목 표시용 이름 가공 (한국 종목 티커/번호는 한글로 반환)
+    function getDisplayName(rawName) {
+        const key = cleanStr(rawName);
+        if (KOREAN_STOCK_MAP[key]) return KOREAN_STOCK_MAP[key];
+        
+        // .KS 제거 후 검색
+        const noKsKey = key.replace(".KS", "");
+        if (KOREAN_STOCK_MAP[noKsKey]) return KOREAN_STOCK_MAP[noKsKey];
+
+        return rawName.toUpperCase();
+    }
+
     function findLiveData(name) {
         if (!marketData.stocks) return {};
         const target = cleanStr(name);
@@ -327,12 +368,9 @@
         return {};
     }
 
-    // 계좌 및 종목 국적에 따른 세율 반환
     function getTaxRate(accountType, isUSD) {
-        if (accountType === "ISA" || accountType === "연금저축/IRP") {
-            return 0.0; // 과세이연 및 비과세 혜택 반영 (수령 시점 전 배당금 100% 재투자 기준)
-        }
-        return isUSD ? 0.15 : 0.154; // 일반 계좌: 미국 15%, 한국 15.4%
+        if (accountType === "ISA" || accountType === "연금저축/IRP") return 0.0;
+        return isUSD ? 0.15 : 0.154;
     }
 
     function render() {
@@ -349,7 +387,9 @@
 
         myPortfolio.forEach((item, index) => {
             const accType = item.account || "일반";
+            const displayName = getDisplayName(item.name); // 한글 표기 변환
             const liveData = findLiveData(item.name);
+            
             const curPrice = liveData.price || 0;
             const rawDivPerShare = liveData.divPerShare || 0;
             const months = liveData.months || [];
@@ -357,7 +397,6 @@
             
             const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
 
-            // 계좌별 맞춤 세율 계산
             const taxRate = getTaxRate(accType, isUSD);
             const netDivPerShare = rawDivPerShare * (1 - taxRate);
 
@@ -369,13 +408,13 @@
 
             totalInvestKRW += investKRW;
             totalNetDividendKRW += netDividendKRW;
-            stockDivSums.push({ name: `${item.name}(${accType})`, value: Math.round(netDividendKRW) });
+            stockDivSums.push({ name: `${displayName}(${accType})`, value: Math.round(netDividendKRW) });
 
-            // 1. 보유 종목 테이블 랜더링
+            // 1. 보유 종목 리스트 랜더링
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="badge-acc">${accType}</span></td>
-                <td><strong>${item.name}</strong></td>
+                <td><strong>${displayName}</strong></td>
                 <td>${item.qty}주</td>
                 <td>${item.price.toLocaleString()}</td>
                 <td style="color: var(--accent);">${curPrice ? curPrice.toLocaleString() : '0'}</td>
@@ -399,10 +438,9 @@
                 }
             });
 
-            monthlyRows.push({ name: `${item.name} (${accType})`, divs: rowDivs, total: netDividendKRW });
+            monthlyRows.push({ name: `${displayName} (${accType})`, divs: rowDivs, total: netDividendKRW });
         });
 
-        // 요약 정보
         document.getElementById('total-invest').innerText = Math.round(totalInvestKRW).toLocaleString() + ' 원';
         document.getElementById('total-dividend').innerText = Math.round(totalNetDividendKRW).toLocaleString() + ' 원';
         const avgYield = totalInvestKRW > 0 ? ((totalNetDividendKRW / totalInvestKRW) * 100).toFixed(2) : "0.00";
@@ -512,7 +550,7 @@
     function saveStock() {
         const indexStr = document.getElementById('edit-index').value;
         const account = document.getElementById('input-account').value;
-        const name = document.getElementById('input-name').value.trim();
+        let name = document.getElementById('input-name').value.trim();
         const qty = parseFloat(document.getElementById('input-qty').value);
         const price = parseFloat(document.getElementById('input-price').value);
 
@@ -520,6 +558,9 @@
             alert('올바른 데이터를 입력해주세요.');
             return;
         }
+
+        // 종목 입력 시 자동으로 이름 가공
+        name = getDisplayName(name);
 
         if (indexStr !== '') {
             myPortfolio[parseInt(indexStr)] = { account, name, qty, price };

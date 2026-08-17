@@ -13,6 +13,7 @@
             --text-sub: #94a3b8;
             --border: #334155;
             --danger: #f43f5e;
+            --accent: #38bdf8;
         }
 
         body {
@@ -24,7 +25,7 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto;
         }
 
@@ -39,16 +40,8 @@
             border: 1px solid var(--border);
         }
 
-        .header h1 {
-            font-size: 1.3rem;
-            margin: 0 0 4px 0;
-        }
-
-        .header p {
-            font-size: 0.8rem;
-            color: var(--text-sub);
-            margin: 0;
-        }
+        .header h1 { font-size: 1.3rem; margin: 0 0 4px 0; }
+        .header p { font-size: 0.8rem; color: var(--text-sub); margin: 0; }
 
         .btn-add {
             background-color: var(--primary);
@@ -68,15 +61,14 @@
             border: 1px solid var(--border);
         }
 
-        .summary-title {
-            font-size: 0.85rem;
-            color: var(--text-sub);
-            margin-bottom: 8px;
-        }
+        .summary-title { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px; }
+        .summary-value { font-size: 1.6rem; font-weight: bold; }
 
-        .summary-value {
-            font-size: 1.6rem;
+        .section-title {
+            font-size: 1.1rem;
             font-weight: bold;
+            margin: 24px 0 12px 0;
+            color: var(--text-main);
         }
 
         .table-card {
@@ -84,6 +76,7 @@
             border-radius: 12px;
             border: 1px solid var(--border);
             overflow-x: auto;
+            margin-bottom: 20px;
         }
 
         table {
@@ -91,29 +84,31 @@
             border-collapse: collapse;
             text-align: center;
             font-size: 0.85rem;
+            white-space: nowrap;
         }
 
         th {
             background: #111827;
             color: var(--text-sub);
-            padding: 12px 6px;
+            padding: 12px 8px;
             font-weight: normal;
             border-bottom: 1px solid var(--border);
         }
 
         td {
-            padding: 14px 6px;
+            padding: 12px 8px;
             border-bottom: 1px solid var(--border);
         }
 
-        .btn-del {
+        .btn-action {
             background: none;
             border: none;
-            color: var(--danger);
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
+            margin: 0 2px;
         }
 
+        /* 모달 스타일 */
         .modal {
             display: none;
             position: fixed;
@@ -121,6 +116,7 @@
             background: rgba(0,0,0,0.7);
             justify-content: center;
             align-items: center;
+            z-index: 999;
         }
 
         .modal-content {
@@ -154,6 +150,7 @@
             border-radius: 6px;
             border: none;
             font-weight: bold;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -165,7 +162,7 @@
             <h1>자동 연동 배당 가계부</h1>
             <p>티커·수량·평단가만 입력하면 배당금 자동 계산</p>
         </div>
-        <button class="btn-add" onclick="openModal()">+ 종목 추가</button>
+        <button class="btn-add" onclick="openModal('add')">+ 종목 추가</button>
     </div>
 
     <div class="summary-card">
@@ -183,6 +180,8 @@
         <div class="summary-value" style="color: #818cf8;" id="avg-yield">0.00 %</div>
     </div>
 
+    <!-- 보유 종목 관리 테이블 -->
+    <div class="section-title">보유 종목 리스트</div>
     <div class="table-card">
         <table>
             <thead>
@@ -190,26 +189,47 @@
                     <th>종목명/티커</th>
                     <th>수량</th>
                     <th>내 평단가</th>
-                    <th>현재가<br>(자동)</th>
-                    <th>연간 주당<br>배당금 (자동)</th>
-                    <th>지급월<br>(자동)</th>
+                    <th>현재가(자동)</th>
+                    <th>연간 주당 배당금</th>
+                    <th>지급월</th>
                     <th>관리</th>
                 </tr>
             </thead>
             <tbody id="portfolio-body"></tbody>
         </table>
     </div>
+
+    <!-- 월별/종목별 배당금 캘린더 테이블 -->
+    <div class="section-title">월별 배당금 예측표 (원화 기준)</div>
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr id="monthly-header">
+                    <th>종목명</th>
+                    <th>1월</th><th>2월</th><th>3월</th><th>4월</th>
+                    <th>5월</th><th>6월</th><th>7월</th><th>8월</th>
+                    <th>9월</th><th>10월</th><th>11월</th><th>12월</th>
+                </tr>
+            </thead>
+            <tbody id="monthly-body"></tbody>
+            <tfoot>
+                <tr id="monthly-footer" style="background: #111827; font-weight: bold; color: var(--primary);"></tr>
+            </tfoot>
+        </table>
+    </div>
 </div>
 
-<div class="modal" id="addModal">
+<!-- 종목 추가/수정 모달 -->
+<div class="modal" id="stockModal">
     <div class="modal-content">
-        <h3>종목 추가</h3>
-        <input type="text" id="input-name" placeholder="종목명/티커 (예: JEPQ, 삼성전자)">
+        <h3 id="modal-title">종목 추가</h3>
+        <input type="hidden" id="edit-index">
+        <input type="text" id="input-name" placeholder="종목명/티커 (예: JEPI, 삼성전자)">
         <input type="number" id="input-qty" placeholder="수량 (예: 10)">
-        <input type="number" id="input-price" placeholder="평단가 (원/달러)">
+        <input type="number" id="input-price" placeholder="평단가 (원/달러)" step="any">
         <div class="modal-btns">
             <button onclick="closeModal()" style="background: #475569; color: white;">취소</button>
-            <button onclick="addStock()" style="background: var(--primary); color: black;">추가</button>
+            <button onclick="saveStock()" style="background: var(--primary); color: black;">저장</button>
         </div>
     </div>
 </div>
@@ -218,10 +238,9 @@
     let marketData = { stocks: {}, exchangeRate: 1350 };
     
     let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
-        { name: "JEPQ", qty: 373, price: 57.08 },
-        { name: "삼성전자", qty: 55, price: 269454 },
-        { name: "삼성전자우", qty: 400, price: 188396 },
-        { name: "현대차2우B", qty: 60, price: 248000 }
+        { name: "JEPI", qty: 373, price: 57.09 },
+        { name: "GPIX", qty: 287, price: 54.96 },
+        { name: "삼성전자", qty: 55, price: 269454 }
     ];
 
     async function init() {
@@ -236,31 +255,21 @@
         render();
     }
 
-    // 이름 비교용 문자열 정규화 (공백 제거, 대문자 변환)
     function cleanStr(str) {
         return (str || '').toString().replace(/\s+/g, '').toUpperCase();
     }
 
     function findLiveData(name) {
         if (!marketData.stocks) return {};
-        
         const target = cleanStr(name);
 
-        // 1. 키 이름 비교
         for (let key in marketData.stocks) {
-            if (cleanStr(key) === target) {
-                return marketData.stocks[key];
-            }
+            if (cleanStr(key) === target) return marketData.stocks[key];
         }
-
-        // 2. ticker 값 비교
         for (let key in marketData.stocks) {
             const item = marketData.stocks[key];
-            if (item.ticker && cleanStr(item.ticker) === target) {
-                return item;
-            }
+            if (item.ticker && cleanStr(item.ticker) === target) return item;
         }
-
         return {};
     }
 
@@ -272,69 +281,149 @@
         let totalDividendKRW = 0;
         const rate = marketData.exchangeRate || 1350;
 
+        // 월별 합계 배열 (1~12월)
+        const monthTotals = new Array(12).fill(0);
+        const monthlyRows = [];
+
         myPortfolio.forEach((item, index) => {
             const liveData = findLiveData(item.name);
 
             const curPrice = liveData.price || 0;
             const divPerShare = liveData.divPerShare || 0;
-            const months = (liveData.months && liveData.months.length > 0) ? liveData.months.join(',') + '월' : '-';
+            const months = liveData.months || [];
+            const monthsText = months.length > 0 ? months.join(',') + '월' : '-';
             
             const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
 
             const investAmount = item.qty * item.price;
             const dividendAmount = item.qty * divPerShare;
 
-            if (isUSD) {
-                totalInvestKRW += investAmount * rate;
-                totalDividendKRW += dividendAmount * rate;
-            } else {
-                totalInvestKRW += investAmount;
-                totalDividendKRW += dividendAmount;
-            }
+            const investKRW = isUSD ? investAmount * rate : investAmount;
+            const dividendKRW = isUSD ? dividendAmount * rate : dividendAmount;
 
+            totalInvestKRW += investKRW;
+            totalDividendKRW += dividendKRW;
+
+            // 1. 보유 종목 테이블 로우 추가
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${item.name}</strong></td>
                 <td>${item.qty}주</td>
                 <td>${item.price.toLocaleString()}</td>
-                <td style="color: #38bdf8;">${curPrice ? curPrice.toLocaleString() : '0'}</td>
+                <td style="color: var(--accent);">${curPrice ? curPrice.toLocaleString() : '0'}</td>
                 <td style="color: var(--primary);">${divPerShare ? divPerShare.toLocaleString() : '0'}</td>
-                <td>${months}</td>
-                <td><button class="btn-del" onclick="deleteStock(${index})">🗑️</button></td>
+                <td>${monthsText}</td>
+                <td>
+                    <button class="btn-action" onclick="openModal('edit', ${index})">✏️</button>
+                    <button class="btn-action" onclick="deleteStock(${index})" style="color:var(--danger)">🗑️</button>
+                </td>
             `;
             tbody.appendChild(tr);
+
+            // 2. 월별 배당금 계산
+            const divPerOccurence = months.length > 0 ? dividendKRW / months.length : 0;
+            const rowDivs = new Array(12).fill(0);
+
+            months.forEach(m => {
+                if (m >= 1 && m <= 12) {
+                    rowDivs[m - 1] = divPerOccurence;
+                    monthTotals[m - 1] += divPerOccurence;
+                }
+            });
+
+            monthlyRows.push({ name: item.name, divs: rowDivs });
         });
 
+        // 요약 업데이트
         document.getElementById('total-invest').innerText = Math.round(totalInvestKRW).toLocaleString() + ' 원';
         document.getElementById('total-dividend').innerText = Math.round(totalDividendKRW).toLocaleString() + ' 원';
         
         const avgYield = totalInvestKRW > 0 ? ((totalDividendKRW / totalInvestKRW) * 100).toFixed(2) : "0.00";
         document.getElementById('avg-yield').innerText = avgYield + ' %';
 
+        // 3. 월별 배당표 랜더링
+        renderMonthlyTable(monthlyRows, monthTotals);
+
         localStorage.setItem('myPortfolio', JSON.stringify(myPortfolio));
     }
 
-    function openModal() { document.getElementById('addModal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('addModal').style.display = 'none'; }
+    function renderMonthlyTable(rows, totals) {
+        const mBody = document.getElementById('monthly-body');
+        const mFooter = document.getElementById('monthly-footer');
+        mBody.innerHTML = '';
 
-    function addStock() {
-        const name = document.getElementById('input-name').value;
-        const qty = parseFloat(document.getElementById('input-qty').value);
-        const price = parseFloat(document.getElementById('input-price').value);
+        rows.forEach(row => {
+            const tr = document.createElement('tr');
+            let cells = `<td><strong>${row.name}</strong></td>`;
+            row.divs.forEach(val => {
+                cells += `<td>${val > 0 ? Math.round(val).toLocaleString() : '-'}</td>`;
+            });
+            tr.innerHTML = cells;
+            mBody.appendChild(tr);
+        });
 
-        if (name && qty && price) {
-            myPortfolio.push({ name, qty, price });
-            closeModal();
-            render();
+        // 월별 합계 (푸터)
+        let footerCells = `<td>합계</td>`;
+        totals.forEach(sum => {
+            footerCells += `<td>${sum > 0 ? Math.round(sum).toLocaleString() : '0'}</td>`;
+        });
+        mFooter.innerHTML = footerCells;
+    }
+
+    // 모달 관리 (추가 / 수정)
+    function openModal(mode, index = null) {
+        const modal = document.getElementById('stockModal');
+        const title = document.getElementById('modal-title');
+        
+        if (mode === 'edit') {
+            title.innerText = '종목 수정';
+            const item = myPortfolio[index];
+            document.getElementById('edit-index').value = index;
+            document.getElementById('input-name').value = item.name;
+            document.getElementById('input-qty').value = item.qty;
+            document.getElementById('input-price').value = item.price;
+        } else {
+            title.innerText = '종목 추가';
+            document.getElementById('edit-index').value = '';
             document.getElementById('input-name').value = '';
             document.getElementById('input-qty').value = '';
             document.getElementById('input-price').value = '';
         }
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('stockModal').style.display = 'none';
+    }
+
+    function saveStock() {
+        const indexStr = document.getElementById('edit-index').value;
+        const name = document.getElementById('input-name').value.trim();
+        const qty = parseFloat(document.getElementById('input-qty').value);
+        const price = parseFloat(document.getElementById('input-price').value);
+
+        if (!name || isNaN(qty) || isNaN(price)) {
+            alert('올바른 데이터를 입력해주세요.');
+            return;
+        }
+
+        if (indexStr !== '') {
+            // 수정
+            myPortfolio[parseInt(indexStr)] = { name, qty, price };
+        } else {
+            // 추가
+            myPortfolio.push({ name, qty, price });
+        }
+
+        closeModal();
+        render();
     }
 
     function deleteStock(index) {
-        myPortfolio.splice(index, 1);
-        render();
+        if (confirm('해당 종목을 삭제하시겠습니까?')) {
+            myPortfolio.splice(index, 1);
+            render();
+        }
     }
 
     window.onload = init;

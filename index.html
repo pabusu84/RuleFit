@@ -22,50 +22,18 @@
             padding: 16px;
         }
 
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border-color);
-        }
-
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid var(--border-color); }
         h1 { font-size: 1.4rem; margin-top: 0; margin-bottom: 8px; }
         .subtitle { font-size: 0.85rem; color: var(--sub-text); margin-bottom: 16px; }
-        
         .stat-label { font-size: 0.85rem; color: var(--sub-text); margin-bottom: 4px; }
         .stat-value { font-size: 1.6rem; font-weight: bold; color: var(--accent-color); }
         .stat-value-sub { font-size: 1.4rem; font-weight: bold; color: #38bdf8; }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 0.85rem;
-        }
-
-        th, td {
-            padding: 10px 6px;
-            text-align: right;
-            border-bottom: 1px solid var(--border-color);
-        }
-
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        th, td { padding: 10px 6px; text-align: right; border-bottom: 1px solid var(--border-color); }
         th:first-child, td:first-child { text-align: left; }
         th { color: var(--sub-text); font-weight: normal; }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            background-color: #334155;
-            color: #f8fafc;
-        }
     </style>
 </head>
 <body>
@@ -73,12 +41,6 @@
         <div class="card">
             <h1>자동 연동 배당 가계부</h1>
             <div class="subtitle">네이버 증권 & 야후 파이낸스 실시간 연동</div>
-            
-            <div style="margin-bottom: 16px;">
-                <div class="stat-label">총 매수 금액</div>
-                <div id="total-invest" class="stat-value-sub">0 원</div>
-            </div>
-
             <div>
                 <div class="stat-label">연간 예상 실수령 배당금 (세후)</div>
                 <div id="total-dividend" class="stat-value">0 원</div>
@@ -91,52 +53,39 @@
                 <thead>
                     <tr>
                         <th>종목명</th>
-                        <th>수량</th>
                         <th>현재가(원)</th>
-                        <th>연 배당금(원)</th>
+                        <th>주당 배당금(원)</th>
                     </tr>
                 </thead>
                 <tbody id="stock-list-body">
-                    <tr><td colspan="4" style="text-align:center;">데이터를 불러오는 중입니다...</td></tr>
+                    <tr><td colspan="3" style="text-align:center;">데이터를 불러오는 중입니다...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // 한국 주식 이름 <-> 티커 매핑
-        const KOREAN_STOCK_MAP = {
-            "삼성전자": "005930.KS",
-            "삼성전자우": "005935.KS",
-            "SK하이닉스": "000660.KS",
-            "삼성SDI": "006400.KS",
-            "현대차2우B": "005387.KS",
-            "두산에너빌리티": "034020.KS",
-            "TIGER 배당커버드콜액티브": "472150.KS"
+        const NAME_MAP = {
+            "005930.KS": "삼성전자", "005930": "삼성전자",
+            "005935.KS": "삼성전자우", "005935": "삼성전자우",
+            "000660.KS": "SK하이닉스", "000660": "SK하이닉스",
+            "006400.KS": "삼성SDI", "006400": "삼성SDI",
+            "005387.KS": "현대차2우B", "005387": "현대차2우B",
+            "034020.KS": "두산에너빌리티", "034020": "두산에너빌리티",
+            "472150.KS": "TIGER 배당커버드콜액티브", "472150": "TIGER 배당커버드콜액티브"
         };
 
         async function loadData() {
             try {
-                // 캐시 방지(timestamp 추가)를 적용해 항상 최신 data.json 로드
                 const res = await fetch('data.json?v=' + new Date().getTime());
                 const data = await res.json();
                 
                 const exchangeRate = data.exchangeRate || 1350;
                 const stocksData = data.stocks || {};
 
-                // targets.json 기반 혹은 내 보유 종목 연동
-                // targets.json이 없거나 비어있는 경우 대응을 위한 기본 로직
-                const targetsRes = await fetch('targets.json?v=' + new Date().getTime()).catch(() => null);
-                let targets = [];
-                if (targetsRes && targetsRes.ok) {
-                    targets = await targetsRes.json();
-                }
-
                 renderTable(stocksData, exchangeRate);
             } catch (err) {
                 console.error("데이터 로딩 실패:", err);
-                document.getElementById('stock-list-body').innerHTML = 
-                    `<tr><td colspan="4" style="text-align:center; color:#ef4444;">데이터를 불러올 수 없습니다.</td></tr>`;
             }
         }
 
@@ -145,28 +94,28 @@
             tbody.innerHTML = '';
 
             let totalDivKRW = 0;
+            const processedKeys = new Set();
 
-            // stocksData 객체의 모든 종목을 순회
             Object.keys(stocksData).forEach(key => {
-                // 다중 키(.KS 붙은것/안붙은것) 중 중복 출력 방지 (.KS가 들어간 키 위주 사용)
-                if (key.length === 6 && !isNaN(key) && stocksData[key + '.KS']) return;
+                const cleanKey = key.replace('.KS', '');
+                if (processedKeys.has(cleanKey)) return;
+                processedKeys.add(cleanKey);
 
                 const item = stocksData[key];
                 let priceKRW = item.price;
                 let divKRW = item.divPerShare;
 
-                // 달러 표시 종목 원화 환산
                 if (item.currency === 'USD') {
                     priceKRW = Math.round(item.price * exchangeRate);
                     divKRW = Math.round(item.divPerShare * exchangeRate);
                 }
 
                 totalDivKRW += divKRW;
+                const displayName = NAME_MAP[key] || key;
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><b>${key}</b></td>
-                    <td>-</td>
+                    <td><b>${displayName}</b></td>
                     <td>${priceKRW.toLocaleString()} 원</td>
                     <td style="color:#10b981;">${divKRW.toLocaleString()} 원</td>
                 `;
@@ -176,7 +125,6 @@
             document.getElementById('total-dividend').innerText = `${Math.round(totalDivKRW).toLocaleString()} 원`;
         }
 
-        // 페이지 로드 시 실행
         loadData();
     </script>
 </body>

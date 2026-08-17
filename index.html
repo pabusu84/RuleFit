@@ -92,6 +92,38 @@
             height: 220px;
             width: 100%;
         }
+
+        /* 팝업 모달 스타일 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border-color);
+        }
+        .modal-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 16px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; color: var(--sub-text); margin-bottom: 4px; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--card-inner);
+            color: white;
+            box-sizing: border-box;
+        }
+        .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
     </style>
 </head>
 <body>
@@ -103,8 +135,8 @@
                     <div class="subtitle">네이버 증권 & 야후 파이낸스 실시간 연동</div>
                 </div>
                 <div class="btn-group">
-                    <button class="btn">🔑 토큰 설정</button>
-                    <button class="btn btn-primary">+ 종목 추가</button>
+                    <button class="btn" onclick="alert('토큰 설정 준비 중입니다.')">🔑 토큰 설정</button>
+                    <button class="btn btn-primary" onclick="openModal()">+ 종목 추가</button>
                 </div>
             </div>
 
@@ -165,8 +197,43 @@
         </div>
     </div>
 
+    <!-- 종목 추가 모달 팝업 -->
+    <div id="addModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">📌 신규 종목 추가</div>
+            <div class="form-group">
+                <label>종목명</label>
+                <input type="text" id="add-name" placeholder="예: 카카오">
+            </div>
+            <div class="form-group">
+                <label>티커/코드 (국내: 035720.KS / 해외: AAPL)</label>
+                <input type="text" id="add-code" placeholder="예: 035720.KS">
+            </div>
+            <div class="form-group">
+                <label>수량</label>
+                <input type="number" id="add-qty" placeholder="10">
+            </div>
+            <div class="form-group">
+                <label>평단가 (달러 종목은 달러 입력)</label>
+                <input type="number" id="add-avg" placeholder="50000">
+            </div>
+            <div class="form-group">
+                <label>계좌 구분</label>
+                <select id="add-account">
+                    <option value="일반">일반</option>
+                    <option value="ISA">ISA</option>
+                </select>
+            </div>
+            <div class="modal-btns">
+                <button class="btn" onclick="closeModal()">취소</button>
+                <button class="btn btn-primary" onclick="addHolding()">추가하기</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const HOLDINGS = [
+        // 기본 보관 리스트
+        let holdings = [
             { name: "삼성전자", code: "005930.KS", qty: 55, avg: 269454, account: "일반" },
             { name: "GPIX", code: "GPIX", qty: 287, avg: 54.96, account: "일반" },
             { name: "JEPQ", code: "JEPQ", qty: 373, avg: 57.09, account: "일반" },
@@ -180,21 +247,23 @@
             { name: "AAPL", code: "AAPL", qty: 10, avg: 117.0, account: "일반" }
         ];
 
+        let cachedStocks = {};
+        let cachedRate = 1350;
         let chartInstance = null;
 
         async function loadData() {
             try {
                 const res = await fetch('data.json?v=' + new Date().getTime());
                 const data = await res.json();
-                const rate = data.exchangeRate || 1350;
-                const stocks = data.stocks || {};
-                renderDashboard(stocks, rate);
+                cachedRate = data.exchangeRate || 1350;
+                cachedStocks = data.stocks || {};
+                renderDashboard();
             } catch (err) {
                 console.error("데이터 읽기 실패:", err);
             }
         }
 
-        function renderDashboard(stocks, rate) {
+        function renderDashboard() {
             const tbody = document.getElementById('stock-list-body');
             tbody.innerHTML = '';
 
@@ -202,16 +271,15 @@
             let totalDiv = 0;
             const monthlyTotals = Array(12).fill(0);
 
-            // 1. 데이터 가공
-            const processedList = HOLDINGS.map(item => {
-                const info = stocks[item.code] || stocks[item.code.replace('.KS', '')] || { price: 0, divPerShare: 0, months: [], currency: "KRW" };
+            const processedList = holdings.map(item => {
+                const info = cachedStocks[item.code] || cachedStocks[item.code.replace('.KS', '')] || { price: 0, divPerShare: 0, months: [], currency: "KRW" };
                 const isUSD = info.currency === 'USD' || ['GPIX', 'JEPQ', 'AAPL'].includes(item.code);
 
                 const divPerShareText = isUSD ? `$${info.divPerShare.toFixed(2)}` : `${Math.round(info.divPerShare).toLocaleString()}원`;
-                const priceKRW = isUSD ? Math.round(info.price * rate) : info.price;
-                const divKRWPerShare = isUSD ? (info.divPerShare * rate) : info.divPerShare;
+                const priceKRW = isUSD ? Math.round(info.price * cachedRate) : info.price;
+                const divKRWPerShare = isUSD ? (info.divPerShare * cachedRate) : info.divPerShare;
                 
-                const investKRW = isUSD ? (item.qty * item.avg * rate) : (item.qty * item.avg);
+                const investKRW = isUSD ? (item.qty * item.avg * cachedRate) : (item.qty * item.avg);
                 const annualDivKRW = item.qty * divKRWPerShare * 0.846;
                 const yieldRate = investKRW > 0 ? ((annualDivKRW / investKRW) * 100).toFixed(1) : "0.0";
                 const months = (info.months && info.months.length > 0) ? info.months : [4];
@@ -219,16 +287,14 @@
                 return { ...item, info, isUSD, divPerShareText, priceKRW, investKRW, annualDivKRW, yieldRate, months };
             });
 
-            // 2. 정렬 로직 (1순위: 계좌 분류, 2순위: 매수 금액)
+            // 정렬: 계좌(일반 -> ISA) -> 매수 금액 높은 순
             processedList.sort((a, b) => {
                 const rankA = a.account === '일반' ? 1 : (a.account === 'ISA' ? 2 : 3);
                 const rankB = b.account === '일반' ? 1 : (b.account === 'ISA' ? 2 : 3);
-                
-                if (rankA !== rankB) return rankA - rankB; // 계좌 오름차순 (일반 -> ISA -> 기타)
-                return b.investKRW - a.investKRW;          // 보유 금액(매수 원금) 내림차순
+                if (rankA !== rankB) return rankA - rankB;
+                return b.investKRW - a.investKRW;
             });
 
-            // 3. 화면 렌더링
             processedList.forEach(data => {
                 totalInvest += data.investKRW;
                 totalDiv += data.annualDivKRW;
@@ -296,6 +362,36 @@
                     }
                 }
             });
+        }
+
+        // 모달 열기/닫기/추가 제어
+        function openModal() {
+            document.getElementById('addModal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('addModal').style.display = 'none';
+        }
+        function addHolding() {
+            const name = document.getElementById('add-name').value.trim();
+            const code = document.getElementById('add-code').value.trim().toUpperCase();
+            const qty = parseFloat(document.getElementById('add-qty').value);
+            const avg = parseFloat(document.getElementById('add-avg').value);
+            const account = document.getElementById('add-account').value;
+
+            if (!name || !code || isNaN(qty) || isNaN(avg)) {
+                alert('모든 항목을 입력해 주세요.');
+                return;
+            }
+
+            holdings.push({ name, code, qty, avg, account });
+            closeModal();
+            renderDashboard();
+
+            // 입력창 초기화
+            document.getElementById('add-name').value = '';
+            document.getElementById('add-code').value = '';
+            document.getElementById('add-qty').value = '';
+            document.getElementById('add-avg').value = '';
         }
 
         loadData();

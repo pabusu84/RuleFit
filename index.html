@@ -96,7 +96,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- 상단 요약 카드 -->
         <div class="header-card">
             <div class="title-area">
                 <div>
@@ -120,7 +119,6 @@
             </div>
         </div>
 
-        <!-- 1. 월별 배당금 그래프 카드 -->
         <div class="card">
             <div class="card-title">📊 월별 예상 배당금 추이</div>
             <div class="chart-wrapper">
@@ -128,7 +126,6 @@
             </div>
         </div>
 
-        <!-- 2. 월별 배당 수령 합계 표 -->
         <div class="card">
             <div class="card-title">📅 월별 배당 수령 요약</div>
             <div class="table-container">
@@ -141,13 +138,11 @@
                         </tr>
                     </thead>
                     <tbody id="monthly-summary-body">
-                        <!-- JS 생성 -->
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- 3. 보유 종목 리스트 카드 -->
         <div class="card">
             <div class="card-title">📋 보유 종목 리스트</div>
             <div class="table-container">
@@ -191,10 +186,8 @@
             try {
                 const res = await fetch('data.json?v=' + new Date().getTime());
                 const data = await res.json();
-                
                 const rate = data.exchangeRate || 1350;
                 const stocks = data.stocks || {};
-
                 renderDashboard(stocks, rate);
             } catch (err) {
                 console.error("데이터 읽기 실패:", err);
@@ -209,55 +202,57 @@
             let totalDiv = 0;
             const monthlyTotals = Array(12).fill(0);
 
-            HOLDINGS.forEach(item => {
+            // 1. 데이터 가공
+            const processedList = HOLDINGS.map(item => {
                 const info = stocks[item.code] || stocks[item.code.replace('.KS', '')] || { price: 0, divPerShare: 0, months: [], currency: "KRW" };
                 const isUSD = info.currency === 'USD' || ['GPIX', 'JEPQ', 'AAPL'].includes(item.code);
 
-                // 주당 배당금
-                const divPerShareText = isUSD 
-                    ? `$${info.divPerShare.toFixed(2)}` 
-                    : `${Math.round(info.divPerShare).toLocaleString()}원`;
-
-                // 현재가 및 배당금 환산
+                const divPerShareText = isUSD ? `$${info.divPerShare.toFixed(2)}` : `${Math.round(info.divPerShare).toLocaleString()}원`;
                 const priceKRW = isUSD ? Math.round(info.price * rate) : info.price;
                 const divKRWPerShare = isUSD ? (info.divPerShare * rate) : info.divPerShare;
-
-                // 매수 원금
+                
                 const investKRW = isUSD ? (item.qty * item.avg * rate) : (item.qty * item.avg);
-                totalInvest += investKRW;
-
-                // 연간 세후 배당금
                 const annualDivKRW = item.qty * divKRWPerShare * 0.846;
-                totalDiv += annualDivKRW;
-
-                // 세후 배당률 계산 (매수 원금 대비 세후 수익률)
                 const yieldRate = investKRW > 0 ? ((annualDivKRW / investKRW) * 100).toFixed(1) : "0.0";
-
-                // 월별 배당금 분배
                 const months = (info.months && info.months.length > 0) ? info.months : [4];
-                const divPerMonth = annualDivKRW / months.length;
-                months.forEach(m => {
+
+                return { ...item, info, isUSD, divPerShareText, priceKRW, investKRW, annualDivKRW, yieldRate, months };
+            });
+
+            // 2. 정렬 로직 (1순위: 계좌 분류, 2순위: 매수 금액)
+            processedList.sort((a, b) => {
+                const rankA = a.account === '일반' ? 1 : (a.account === 'ISA' ? 2 : 3);
+                const rankB = b.account === '일반' ? 1 : (b.account === 'ISA' ? 2 : 3);
+                
+                if (rankA !== rankB) return rankA - rankB; // 계좌 오름차순 (일반 -> ISA -> 기타)
+                return b.investKRW - a.investKRW;          // 보유 금액(매수 원금) 내림차순
+            });
+
+            // 3. 화면 렌더링
+            processedList.forEach(data => {
+                totalInvest += data.investKRW;
+                totalDiv += data.annualDivKRW;
+
+                const divPerMonth = data.annualDivKRW / data.months.length;
+                data.months.forEach(m => {
                     if (m >= 1 && m <= 12) monthlyTotals[m - 1] += divPerMonth;
                 });
 
-                // 표 행 추가 (연 배당금 + 세후 배당률 괄호 표기)
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><b>${item.name}</b> <span class="account-badge">(${item.account})</span></td>
-                    <td style="color:#10b981;"><b>${Math.round(annualDivKRW).toLocaleString()}원</b> <span style="font-size:0.75rem; color:#94a3b8;">(${yieldRate}%)</span></td>
-                    <td style="color:#10b981;">${divPerShareText}</td>
-                    <td>${item.qty}주</td>
-                    <td>${isUSD ? '$' + item.avg : item.avg.toLocaleString()}</td>
-                    <td style="color:#38bdf8;">${priceKRW.toLocaleString()}원</td>
+                    <td><b>${data.name}</b> <span class="account-badge">(${data.account})</span></td>
+                    <td style="color:#10b981;"><b>${Math.round(data.annualDivKRW).toLocaleString()}원</b> <span style="font-size:0.75rem; color:#94a3b8;">(${data.yieldRate}%)</span></td>
+                    <td style="color:#10b981;">${data.divPerShareText}</td>
+                    <td>${data.qty}주</td>
+                    <td>${data.isUSD ? '$' + data.avg : data.avg.toLocaleString()}</td>
+                    <td style="color:#38bdf8;">${data.priceKRW.toLocaleString()}원</td>
                 `;
                 tbody.appendChild(row);
             });
 
-            // 총합 업데이트
             document.getElementById('total-invest').innerText = `${Math.round(totalInvest).toLocaleString()} 원`;
             document.getElementById('total-dividend').innerText = `${Math.round(totalDiv).toLocaleString()} 원`;
 
-            // 월별 표 및 그래프 렌더링
             renderMonthlySummary(monthlyTotals, totalDiv);
             renderChart(monthlyTotals);
         }
@@ -265,7 +260,6 @@
         function renderMonthlySummary(monthlyTotals, totalDiv) {
             const mBody = document.getElementById('monthly-summary-body');
             mBody.innerHTML = '';
-
             monthlyTotals.forEach((val, idx) => {
                 const ratio = totalDiv > 0 ? ((val / totalDiv) * 100).toFixed(1) : 0;
                 const row = document.createElement('tr');
@@ -280,9 +274,7 @@
 
         function renderChart(monthlyData) {
             const ctx = document.getElementById('monthlyChart').getContext('2d');
-            
             if (chartInstance) chartInstance.destroy();
-
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {

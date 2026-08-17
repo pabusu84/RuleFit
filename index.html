@@ -83,16 +83,22 @@
         .btn-edit { background-color: #3b82f6; color: white; }
         .btn-delete { background-color: #ef4444; color: white; }
 
+        /* 상단 요약 지표 2열 그리드 배치 */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
         .stat-box {
             background-color: var(--card-inner);
             border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 10px;
+            padding: 12px;
         }
 
-        .stat-label { font-size: 0.75rem; color: var(--sub-text); margin-bottom: 4px; }
-        .stat-value-blue { font-size: 1.4rem; font-weight: 800; color: #ffffff; }
-        .stat-value-green { font-size: 1.4rem; font-weight: 800; color: var(--accent-green); }
+        .stat-label { font-size: 0.72rem; color: var(--sub-text); margin-bottom: 4px; }
+        .stat-value { font-size: 1.15rem; font-weight: 800; color: #ffffff; }
+        .stat-value-green { font-size: 1.15rem; font-weight: 800; color: var(--accent-green); }
 
         .card {
             background-color: var(--card-bg);
@@ -106,7 +112,6 @@
 
         .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         
-        /* 레이아웃 개선: 화면 폭 맞춤 & 간격 최적화 */
         table { 
             width: 100%; 
             border-collapse: collapse; 
@@ -119,17 +124,15 @@
             vertical-align: middle;
         }
         
-        /* 종목명 컬럼: 단어 단위 2줄 줄바꿈 적용 */
         th:first-child, td:first-child { 
             text-align: left; 
             white-space: normal !important;
-            word-break: keep-all !important; /* 단어 단위 줄바꿈 */
+            word-break: keep-all !important;
             overflow-wrap: break-word;
             line-height: 1.35;
             padding-right: 8px;
         }
 
-        /* 배당금 컬럼: 한눈에 들어오도록 밀착 및 잘림 방지 */
         td:nth-child(2), th:nth-child(2) {
             white-space: nowrap;
         }
@@ -142,7 +145,6 @@
             width: 100%;
         }
 
-        /* 팝업 모달 스타일 */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -190,14 +192,24 @@
                 </div>
             </div>
 
-            <div class="stat-box">
-                <div class="stat-label">총 매수 금액</div>
-                <div id="total-invest" class="stat-value-blue">0 원</div>
-            </div>
-
-            <div class="stat-box">
-                <div class="stat-label">연간 예상 실수령 배당금 (세후)</div>
-                <div id="total-dividend" class="stat-value-green">0 원</div>
+            <!-- 상단 요약 지표 (총 매수, 평가 손익, 연 배당금, 세후 배당률) -->
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="stat-label">총 매수 금액</div>
+                    <div id="total-invest" class="stat-value">0 원</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">전체 평가 손익 (수익률)</div>
+                    <div id="total-profit" class="stat-value">0 원 (0.0%)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">연간 예상 실수령 배당금</div>
+                    <div id="total-dividend" class="stat-value-green">0 원</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">세후 연간 배당률</div>
+                    <div id="total-yield-rate" class="stat-value-green">0.0 %</div>
+                </div>
             </div>
         </div>
 
@@ -282,7 +294,6 @@
     </div>
 
     <script>
-        // 코드 매핑 (숫자 0과 알파벳 O 오입력 모두 방어)
         const STOCK_MAP = {
             "462330.KS": "TIME 미국나스닥100액티브",
             "462330": "TIME 미국나스닥100액티브",
@@ -354,6 +365,7 @@
             tbody.innerHTML = '';
 
             let totalInvest = 0;
+            let totalEval = 0;
             let totalDiv = 0;
             const monthlyTotals = Array(12).fill(0);
 
@@ -375,6 +387,7 @@
                 const divKRWPerShare = isUSD ? (divPerShare * cachedRate) : divPerShare;
                 
                 const investKRW = isUSD ? (item.qty * item.avg * cachedRate) : (item.qty * item.avg);
+                const evalKRW = item.qty * priceKRW;
                 
                 const taxFactor = (item.account === 'ISA' || item.account === 'IRP' || item.account === '연금저축') ? 1.0 : 0.846;
                 const annualDivKRW = item.qty * divKRWPerShare * taxFactor;
@@ -382,7 +395,7 @@
                 const yieldRate = investKRW > 0 ? ((annualDivKRW / investKRW) * 100).toFixed(1) : "0.0";
                 const rawMonths = (info.months && info.months.length > 0) ? info.months : (backup.months || [1,2,3,4,5,6,7,8,9,10,11,12]);
 
-                return { ...item, name: displayName, originalIndex, info, isUSD, divPerShareText, priceKRW, investKRW, annualDivKRW, yieldRate, months: rawMonths };
+                return { ...item, name: displayName, originalIndex, info, isUSD, divPerShareText, priceKRW, investKRW, evalKRW, annualDivKRW, yieldRate, months: rawMonths };
             });
 
             const accountOrder = { "일반": 1, "ISA": 2, "IRP": 3, "연금저축": 4 };
@@ -395,6 +408,7 @@
 
             processedList.forEach(data => {
                 totalInvest += data.investKRW;
+                totalEval += data.evalKRW;
                 totalDiv += data.annualDivKRW;
 
                 const divPerMonth = data.annualDivKRW / data.months.length;
@@ -418,8 +432,21 @@
                 tbody.appendChild(row);
             });
 
+            // 계산 로직
+            const totalProfit = totalEval - totalInvest;
+            const totalReturnRate = totalInvest > 0 ? ((totalProfit / totalInvest) * 100).toFixed(2) : "0.00";
+            const totalYieldRate = totalInvest > 0 ? ((totalDiv / totalInvest) * 100).toFixed(2) : "0.00";
+
+            // 상단 요약 카드 업데이트
             document.getElementById('total-invest').innerText = `${Math.round(totalInvest).toLocaleString()} 원`;
+            
+            const profitElem = document.getElementById('total-profit');
+            const profitSign = totalProfit >= 0 ? '+' : '';
+            profitElem.innerText = `${profitSign}${Math.round(totalProfit).toLocaleString()} 원 (${profitSign}${totalReturnRate}%)`;
+            profitElem.style.color = totalProfit >= 0 ? '#ef4444' : '#38bdf8'; // 상승: 빨강 / 하강: 파랑
+
             document.getElementById('total-dividend').innerText = `${Math.round(totalDiv).toLocaleString()} 원`;
+            document.getElementById('total-yield-rate').innerText = `${totalYieldRate} %`;
 
             renderMonthlySummary(monthlyTotals, totalDiv);
             renderChart(monthlyTotals);

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>자동 연동 배당 가계부</title>
     <!-- Chart.js 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,14 +16,18 @@
             --accent-blue: #38bdf8;
             --sub-text: #94a3b8;
             --border-color: #334155;
+            --accent-red: #ef4444;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 16px;
+            padding: 12px;
+            word-break: keep-all;
         }
 
         .container { max-width: 680px; margin: 0 auto; }
@@ -31,32 +35,53 @@
         .header-card {
             background-color: var(--card-bg);
             border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
+            padding: 18px;
+            margin-bottom: 14px;
             border: 1px solid var(--border-color);
         }
 
         .title-area {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
             margin-bottom: 16px;
+            gap: 10px;
         }
 
-        h1 { font-size: 1.4rem; margin: 0; font-weight: 700; }
-        .subtitle { font-size: 0.8rem; color: var(--sub-text); margin-top: 4px; }
+        h1 { 
+            font-size: 1.25rem; 
+            margin: 0; 
+            font-weight: 700; 
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+        .subtitle { 
+            font-size: 0.75rem; 
+            color: var(--sub-text); 
+            margin-top: 4px; 
+            line-height: 1.3;
+        }
 
-        .btn-group { display: flex; gap: 6px; }
+        .btn-group { 
+            display: flex; 
+            gap: 6px; 
+            flex-shrink: 0;
+        }
         .btn {
             background-color: #334155;
             color: white;
             border: none;
-            padding: 8px 10px;
+            padding: 8px 12px;
             border-radius: 8px;
             font-size: 0.75rem;
+            font-weight: 600;
             cursor: pointer;
+            white-space: nowrap;
         }
         .btn-primary { background-color: #10b981; color: #000; font-weight: bold; }
+        .btn-sm { padding: 4px 8px; font-size: 0.7rem; border-radius: 6px; }
+        .btn-edit { background-color: #3b82f6; color: white; }
+        .btn-delete { background-color: #ef4444; color: white; }
 
         .stat-box {
             background-color: var(--card-inner);
@@ -65,31 +90,31 @@
             margin-bottom: 10px;
         }
 
-        .stat-label { font-size: 0.8rem; color: var(--sub-text); margin-bottom: 4px; }
-        .stat-value-blue { font-size: 1.6rem; font-weight: 800; color: #ffffff; }
-        .stat-value-green { font-size: 1.6rem; font-weight: 800; color: var(--accent-green); }
+        .stat-label { font-size: 0.75rem; color: var(--sub-text); margin-bottom: 4px; }
+        .stat-value-blue { font-size: 1.4rem; font-weight: 800; color: #ffffff; }
+        .stat-value-green { font-size: 1.4rem; font-weight: 800; color: var(--accent-green); }
 
         .card {
             background-color: var(--card-bg);
             border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 16px;
+            padding: 16px;
+            margin-bottom: 14px;
             border: 1px solid var(--border-color);
         }
 
-        .card-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 14px; }
+        .card-title { font-size: 1rem; font-weight: bold; margin-bottom: 12px; }
 
-        .table-container { overflow-x: auto; }
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; white-space: nowrap; }
         th, td { padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); }
         th:first-child, td:first-child { text-align: left; }
         th { color: var(--sub-text); font-weight: normal; }
 
-        .account-badge { font-size: 0.7rem; color: var(--sub-text); }
+        .account-badge { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; }
         
         .chart-wrapper {
             position: relative;
-            height: 220px;
+            height: 200px;
             width: 100%;
         }
 
@@ -98,30 +123,31 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            padding: 16px;
         }
         .modal-content {
             background: var(--card-bg);
             padding: 20px;
             border-radius: 16px;
-            width: 90%;
-            max-width: 400px;
+            width: 100%;
+            max-width: 380px;
             border: 1px solid var(--border-color);
         }
         .modal-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 16px; }
         .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.8rem; color: var(--sub-text); margin-bottom: 4px; }
+        .form-group label { display: block; font-size: 0.75rem; color: var(--sub-text); margin-bottom: 4px; }
         .form-group input, .form-group select {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
             background: var(--card-inner);
             color: white;
-            box-sizing: border-box;
+            font-size: 0.85rem;
         }
         .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
     </style>
@@ -135,8 +161,8 @@
                     <div class="subtitle">네이버 증권 & 야후 파이낸스 실시간 연동</div>
                 </div>
                 <div class="btn-group">
-                    <button class="btn" onclick="alert('토큰 설정 준비 중입니다.')">🔑 토큰 설정</button>
-                    <button class="btn btn-primary" onclick="openModal()">+ 종목 추가</button>
+                    <button class="btn" onclick="alert('토큰 설정 준비 중입니다.')">🔑 토큰</button>
+                    <button class="btn btn-primary" onclick="openAddModal()">+ 종목 추가</button>
                 </div>
             </div>
 
@@ -187,23 +213,25 @@
                             <th>수량</th>
                             <th>내 평단가</th>
                             <th>현재가(자동)</th>
+                            <th style="text-align: center;">관리</th>
                         </tr>
                     </thead>
                     <tbody id="stock-list-body">
-                        <tr><td colspan="6" style="text-align:center;">데이터를 불러오는 중입니다...</td></tr>
+                        <tr><td colspan="7" style="text-align:center;">데이터를 불러오는 중입니다...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- 종목 추가 모달 팝업 -->
-    <div id="addModal" class="modal-overlay">
+    <!-- 종목 추가/수정 모달 팝업 -->
+    <div id="stockModal" class="modal-overlay">
         <div class="modal-content">
-            <div class="modal-title">📌 신규 종목 추가</div>
+            <div id="modal-title" class="modal-title">📌 신규 종목 추가</div>
+            <input type="hidden" id="edit-index" value="-1">
             <div class="form-group">
                 <label>종목명 / 티커 / 국내코드</label>
-                <input type="text" id="add-search" placeholder="예: Time 미국나스닥100액티브 또는 AAPL">
+                <input type="text" id="add-search" placeholder="예: TIME 미국나스닥100액티브 또는 AAPL">
             </div>
             <div class="form-group">
                 <label>수량</label>
@@ -222,26 +250,26 @@
             </div>
             <div class="modal-btns">
                 <button class="btn" onclick="closeModal()">취소</button>
-                <button class="btn btn-primary" onclick="addHolding()">추가하기</button>
+                <button class="btn btn-primary" onclick="saveHolding()">저장하기</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 주요 국내 종목명 -> 코드 자동 매핑 테이블
         const STOCK_MAP = {
-            "TIME 미국나스닥100액티브": "462330.KS",
-            "TIME미국나스닥100액티브": "462330.KS",
-            "삼성전자": "005930.KS",
-            "삼성전자우": "005935.KS",
-            "SK하이닉스": "000660.KS",
-            "삼성SDI": "006400.KS",
-            "현대차2우B": "005387.KS",
-            "두산에너빌리티": "034020.KS",
-            "TIGER 배당커버드콜액티브": "472150.KS"
+            "462330.KS": "TIME 미국나스닥100액티브",
+            "462330": "TIME 미국나스닥100액티브",
+            "426030.KS": "TIME 미국나스닥100액티브",
+            "426030": "TIME 미국나스닥100액티브",
+            "005930.KS": "삼성전자",
+            "005935.KS": "삼성전자우",
+            "000660.KS": "SK하이닉스",
+            "006400.KS": "삼성SDI",
+            "005387.KS": "현대차2우B",
+            "034020.KS": "두산에너빌리티",
+            "472150.KS": "TIGER 배당커버드콜액티브"
         };
 
-        // 기본 초기 보유 종목
         const defaultHoldings = [
             { name: "삼성전자", code: "005930.KS", qty: 55, avg: 269454, account: "일반" },
             { name: "GPIX", code: "GPIX", qty: 287, avg: 54.96, account: "일반" },
@@ -281,10 +309,17 @@
             let totalDiv = 0;
             const monthlyTotals = Array(12).fill(0);
 
-            const processedList = holdings.map(item => {
-                const info = cachedStocks[item.code] || cachedStocks[item.code.replace('.KS', '')] || { price: 0, divPerShare: 0, months: [], currency: "KRW" };
-                const isUSD = info.currency === 'USD' || ['GPIX', 'JEPQ', 'AAPL'].includes(item.code);
+            const processedList = holdings.map((item, originalIndex) => {
+                const rawCode = item.code || "";
+                const cleanCode = rawCode.replace('.KS', '');
+                
+                // 데이터 정보 가져오기
+                const info = cachedStocks[rawCode] || cachedStocks[cleanCode] || { name: item.name, price: 0, divPerShare: 0, months: [], currency: "KRW" };
+                
+                // 종목명 매핑: data.json에 정의된 한글이름 > STOCK_MAP > 저장된 이름 순
+                let displayName = info.name || STOCK_MAP[rawCode] || STOCK_MAP[cleanCode] || item.name;
 
+                const isUSD = info.currency === 'USD' || ['GPIX', 'JEPQ', 'AAPL'].includes(rawCode);
                 const divPerShareText = isUSD ? `$${info.divPerShare.toFixed(2)}` : `${Math.round(info.divPerShare).toLocaleString()}원`;
                 const priceKRW = isUSD ? Math.round(info.price * cachedRate) : info.price;
                 const divKRWPerShare = isUSD ? (info.divPerShare * cachedRate) : info.divPerShare;
@@ -294,7 +329,7 @@
                 const yieldRate = investKRW > 0 ? ((annualDivKRW / investKRW) * 100).toFixed(1) : "0.0";
                 const months = (info.months && info.months.length > 0) ? info.months : [4];
 
-                return { ...item, info, isUSD, divPerShareText, priceKRW, investKRW, annualDivKRW, yieldRate, months };
+                return { ...item, name: displayName, originalIndex, info, isUSD, divPerShareText, priceKRW, investKRW, annualDivKRW, yieldRate, months };
             });
 
             // 정렬: 계좌 (일반 -> ISA) -> 보유 금액 내림차순
@@ -322,6 +357,10 @@
                     <td>${data.qty}주</td>
                     <td>${data.isUSD ? '$' + data.avg : data.avg.toLocaleString()}</td>
                     <td style="color:#38bdf8;">${data.priceKRW.toLocaleString()}원</td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-sm btn-edit" onclick="openEditModal(${data.originalIndex})">수정</button>
+                        <button class="btn btn-sm btn-delete" onclick="deleteHolding(${data.originalIndex})">삭제</button>
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
@@ -374,14 +413,33 @@
             });
         }
 
-        function openModal() {
-            document.getElementById('addModal').style.display = 'flex';
-        }
-        function closeModal() {
-            document.getElementById('addModal').style.display = 'none';
+        function openAddModal() {
+            document.getElementById('modal-title').innerText = "📌 신규 종목 추가";
+            document.getElementById('edit-index').value = "-1";
+            document.getElementById('add-search').value = "";
+            document.getElementById('add-qty').value = "";
+            document.getElementById('add-avg').value = "";
+            document.getElementById('add-account').value = "일반";
+            document.getElementById('stockModal').style.display = 'flex';
         }
 
-        function addHolding() {
+        function openEditModal(index) {
+            const item = holdings[index];
+            document.getElementById('modal-title').innerText = "✏️ 종목 수정";
+            document.getElementById('edit-index').value = index;
+            document.getElementById('add-search').value = item.name || item.code;
+            document.getElementById('add-qty').value = item.qty;
+            document.getElementById('add-avg').value = item.avg;
+            document.getElementById('add-account').value = item.account;
+            document.getElementById('stockModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('stockModal').style.display = 'none';
+        }
+
+        function saveHolding() {
+            const editIndex = parseInt(document.getElementById('edit-index').value);
             const inputVal = document.getElementById('add-search').value.trim();
             const qty = parseFloat(document.getElementById('add-qty').value);
             const avg = parseFloat(document.getElementById('add-avg').value);
@@ -395,30 +453,40 @@
             let name = inputVal;
             let code = inputVal;
 
-            // 1. 국내 종목 이름 매핑 확인
-            if (STOCK_MAP[inputVal]) {
-                code = STOCK_MAP[inputVal];
-            } else if (inputVal.endsWith('.KS') || inputVal.endsWith('.KQ')) {
-                // 이미 005930.KS 형태 입력시
-                code = inputVal.toUpperCase();
-            } else if (/^[0-9]{6}$/.test(inputVal)) {
-                // 6자리 숫자로 입력된 경우 (예: 462330)
+            // 6자리 숫자로 입력된 경우 (예: 426030, 462330 등)
+            if (/^[0-9]{6}$/.test(inputVal)) {
                 code = inputVal + '.KS';
+            } else if (inputVal.endsWith('.KS') || inputVal.endsWith('.KQ')) {
+                code = inputVal.toUpperCase();
             } else {
-                // 알파벳 티커인 경우 (예: AAPL, JEPQ)
                 code = inputVal.toUpperCase();
             }
 
-            holdings.push({ name, code, qty, avg, account });
-            localStorage.setItem('my_holdings', JSON.stringify(holdings));
+            // 한글명이 있으면 매핑된 이름 지정
+            const cleanCode = code.replace('.KS', '');
+            if (STOCK_MAP[code] || STOCK_MAP[cleanCode]) {
+                name = STOCK_MAP[code] || STOCK_MAP[cleanCode];
+            }
 
+            const newHolding = { name, code, qty, avg, account };
+
+            if (editIndex >= 0) {
+                holdings[editIndex] = newHolding;
+            } else {
+                holdings.push(newHolding);
+            }
+
+            localStorage.setItem('my_holdings', JSON.stringify(holdings));
             closeModal();
             renderDashboard();
+        }
 
-            // 입력 폼 초기화
-            document.getElementById('add-search').value = '';
-            document.getElementById('add-qty').value = '';
-            document.getElementById('add-avg').value = '';
+        function deleteHolding(index) {
+            if (confirm(`${holdings[index].name || holdings[index].code} (${holdings[index].account}) 종목을 삭제하시겠습니까?`)) {
+                holdings.splice(index, 1);
+                localStorage.setItem('my_holdings', JSON.stringify(holdings));
+                renderDashboard();
+            }
         }
 
         loadData();

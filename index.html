@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>자동 연동 배당 가계부</title>
+    <!-- Chart.js 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #0b132b;
@@ -24,33 +26,34 @@
             padding: 16px;
         }
 
-        .container { max-width: 600px; margin: 0 auto; }
+        .container { max-width: 650px; margin: 0 auto; }
         
         .header-card {
             background-color: var(--card-bg);
             border-radius: 16px;
-            padding: 24px 20px;
-            margin-bottom: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
         }
 
         .title-area {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
-        h1 { font-size: 1.5rem; margin: 0; font-weight: 700; }
-        .subtitle { font-size: 0.85rem; color: var(--sub-text); margin-top: 6px; }
+        h1 { font-size: 1.4rem; margin: 0; font-weight: 700; }
+        .subtitle { font-size: 0.8rem; color: var(--sub-text); margin-top: 4px; }
 
-        .btn-group { display: flex; gap: 8px; }
+        .btn-group { display: flex; gap: 6px; }
         .btn {
             background-color: #334155;
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-radius: 8px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             cursor: pointer;
         }
         .btn-primary { background-color: #10b981; color: #000; font-weight: bold; }
@@ -58,33 +61,36 @@
         .stat-box {
             background-color: var(--card-inner);
             border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
         }
 
-        .stat-label { font-size: 0.85rem; color: var(--sub-text); margin-bottom: 6px; }
-        .stat-value-blue { font-size: 1.8rem; font-weight: 800; color: #ffffff; }
-        .stat-value-green { font-size: 1.8rem; font-weight: 800; color: var(--accent-green); }
-
-        .section-title { font-size: 1.2rem; font-weight: bold; margin: 24px 0 12px 0; }
+        .stat-label { font-size: 0.8rem; color: var(--sub-text); margin-bottom: 4px; }
+        .stat-value-blue { font-size: 1.6rem; font-weight: 800; color: #ffffff; }
+        .stat-value-green { font-size: 1.6rem; font-weight: 800; color: var(--accent-green); }
 
         .card {
             background-color: var(--card-bg);
             border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 18px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
         }
 
+        .card-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 14px; }
+
         .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
-        th, td { padding: 12px 8px; text-align: right; border-bottom: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; white-space: nowrap; }
+        th, td { padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); }
         th:first-child, td:first-child { text-align: left; }
         th { color: var(--sub-text); font-weight: normal; }
 
-        .account-badge {
-            font-size: 0.75rem;
-            color: var(--sub-text);
-            margin-left: 4px;
+        .account-badge { font-size: 0.7rem; color: var(--sub-text); }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 220px;
+            width: 100%;
         }
     </style>
 </head>
@@ -95,7 +101,7 @@
             <div class="title-area">
                 <div>
                     <h1>자동 연동 배당 가계부</h1>
-                    <div class="subtitle">종목 추가 시 targets.json 자동 업데이트 지원</div>
+                    <div class="subtitle">네이버 증권 & 야후 파이낸스 실시간 연동</div>
                 </div>
                 <div class="btn-group">
                     <button class="btn">🔑 토큰 설정</button>
@@ -114,18 +120,45 @@
             </div>
         </div>
 
-        <!-- 보유 종목 리스트 카드 -->
+        <!-- 1. 월별 배당금 그래프 카드 -->
         <div class="card">
-            <div class="section-title" style="margin-top:0;">보유 종목 리스트</div>
+            <div class="card-title">📊 월별 예상 배당금 추이</div>
+            <div class="chart-wrapper">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 2. 월별 배당 수령 합계 표 -->
+        <div class="card">
+            <div class="card-title">📅 월별 배당 수령 요약</div>
+            <div class="table-container">
+                <table id="monthly-summary-table">
+                    <thead>
+                        <tr>
+                            <th>월</th>
+                            <th>예상 배당금(세후)</th>
+                            <th>비율</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthly-summary-body">
+                        <!-- JS 생성 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. 보유 종목 리스트 카드 -->
+        <div class="card">
+            <div class="card-title">📋 보유 종목 리스트</div>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th>종목명/티커</th>
+                            <th>종목명</th>
                             <th>수량</th>
                             <th>내 평단가</th>
                             <th>현재가(자동)</th>
-                            <th>연 배당금</th>
+                            <th>연 배당금(세후)</th>
                         </tr>
                     </thead>
                     <tbody id="stock-list-body">
@@ -137,71 +170,130 @@
     </div>
 
     <script>
-        // 사용자 정의 보유 종목 수량 및 평단가 정보
-        const MY_HOLDINGS = [
-            { name: "삼성전자", code: "005930.KS", qty: 55, avgPrice: 269454, account: "일반" },
-            { name: "GPIX", code: "GPIX", qty: 287, avgPrice: 54.96, account: "일반" },
-            { name: "JEPQ", code: "JEPQ", qty: 373, avgPrice: 57.09, account: "일반" },
-            { name: "삼성전자우", code: "005935.KS", qty: 400, avgPrice: 188396, account: "일반" },
-            { name: "SK하이닉스", code: "000660.KS", qty: 30, avgPrice: 2162833, account: "일반" },
-            { name: "삼성SDI", code: "006400.KS", qty: 12, avgPrice: 510791, account: "일반" },
-            { name: "현대차2우B", code: "005387.KS", qty: 60, avgPrice: 248000, account: "일반" },
-            { name: "두산에너빌리티", code: "034020.KS", qty: 68, avgPrice: 95108, account: "일반" },
-            { name: "TIGER 배당커버드콜액티브", code: "472150.KS", qty: 215, avgPrice: 95108, account: "일반" },
-            { name: "TIGER 배당커버드콜액티브", code: "472150.KS", qty: 243, avgPrice: 29545, account: "ISA" },
-            { name: "TIME 미국나스닥100액티브", code: "472150.KS", qty: 30, avgPrice: 61054, account: "ISA" },
-            { name: "AAPL", code: "AAPL", qty: 10, avgPrice: 117.0, account: "일반" }
+        const HOLDINGS = [
+            { name: "삼성전자", code: "005930.KS", qty: 55, avg: 269454, account: "일반" },
+            { name: "GPIX", code: "GPIX", qty: 287, avg: 54.96, account: "일반" },
+            { name: "JEPQ", code: "JEPQ", qty: 373, avg: 57.09, account: "일반" },
+            { name: "삼성전자우", code: "005935.KS", qty: 400, avg: 188396, account: "일반" },
+            { name: "SK하이닉스", code: "000660.KS", qty: 30, avg: 2162833, account: "일반" },
+            { name: "삼성SDI", code: "006400.KS", qty: 12, avg: 510791, account: "일반" },
+            { name: "현대차2우B", code: "005387.KS", qty: 60, avg: 248000, account: "일반" },
+            { name: "두산에너빌리티", code: "034020.KS", qty: 68, avg: 95108, account: "일반" },
+            { name: "TIGER 배당커버드콜액티브", code: "472150.KS", qty: 215, avg: 95108, account: "일반" },
+            { name: "TIGER 배당커버드콜액티브", code: "472150.KS", qty: 243, avg: 29545, account: "ISA" },
+            { name: "AAPL", code: "AAPL", qty: 10, avg: 117.0, account: "일반" }
         ];
+
+        let chartInstance = null;
 
         async function loadData() {
             try {
                 const res = await fetch('data.json?v=' + new Date().getTime());
                 const data = await res.json();
                 
-                const exchangeRate = data.exchangeRate || 1350;
-                const stocksData = data.stocks || {};
+                const rate = data.exchangeRate || 1350;
+                const stocks = data.stocks || {};
 
-                renderDashboard(stocksData, exchangeRate);
+                renderDashboard(stocks, rate);
             } catch (err) {
-                console.error("데이터 불러오기 실패:", err);
+                console.error("데이터 읽기 실패:", err);
             }
         }
 
-        function renderDashboard(stocksData, exchangeRate) {
+        function renderDashboard(stocks, rate) {
             const tbody = document.getElementById('stock-list-body');
             tbody.innerHTML = '';
 
-            let totalInvestKRW = 0;
-            let totalDivKRW = 0;
+            let totalInvest = 0;
+            let totalDiv = 0;
+            const monthlyTotals = Array(12).fill(0);
 
-            MY_HOLDINGS.forEach(stock => {
-                const info = stocksData[stock.code] || stocksData[stock.code.replace('.KS', '')] || { price: 0, divPerShare: 0, currency: "KRW" };
+            HOLDINGS.forEach(item => {
+                const info = stocks[item.code] || stocks[item.code.replace('.KS', '')] || { price: 0, divPerShare: 0, months: [], currency: "KRW" };
+                const isUSD = info.currency === 'USD' || ['GPIX', 'JEPQ', 'AAPL'].includes(item.code);
 
-                let currentPrice = info.price;
-                let divPerShare = info.divPerShare;
-                let isUSD = info.currency === 'USD' || stock.code === 'GPIX' || stock.code === 'JEPQ' || stock.code === 'AAPL';
+                // 현재가 및 배당금 환산
+                const priceKRW = isUSD ? Math.round(info.price * rate) : info.price;
+                const divKRWPerShare = isUSD ? (info.divPerShare * rate) : info.divPerShare;
 
-                // 총 매수 금액 계산
-                let investKRW = isUSD ? (stock.qty * stock.avgPrice * exchangeRate) : (stock.qty * stock.avgPrice);
-                totalInvestKRW += investKRW;
+                // 총 매수 금액
+                const investKRW = isUSD ? (item.qty * item.avg * rate) : (item.qty * item.avg);
+                totalInvest += investKRW;
 
-                // 연간 배당금 계산 (세후 15.4% 적용)
-                let annualDiv = isUSD ? (stock.qty * divPerShare * exchangeRate * 0.846) : (stock.qty * divPerShare * 0.846);
-                totalDivKRW += annualDiv;
+                // 연간 세후 배당금
+                const annualDivKRW = item.qty * divKRWPerShare * 0.846;
+                totalDiv += annualDivKRW;
 
+                // 월별 배당금 분배
+                const months = (info.months && info.months.length > 0) ? info.months : [4];
+                const divPerMonth = annualDivKRW / months.length;
+                months.forEach(m => {
+                    if (m >= 1 && m <= 12) monthlyTotals[m - 1] += divPerMonth;
+                });
+
+                // 표 행 추가
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><b>${stock.name}</b> <span class="account-badge">(${stock.account})</span></td>
-                    <td>${stock.qty}주</td>
-                    <td>${stock.avgPrice.toLocaleString()}</td>
-                    <td style="color:#38bdf8;">${isUSD ? currentPrice.toFixed(2) : currentPrice.toLocaleString()}</td>
-                    <td style="color:#10b981;">${Math.round(annualDiv).toLocaleString()} 원</td>
+                    <td><b>${item.name}</b> <span class="account-badge">(${item.account})</span></td>
+                    <td>${item.qty}주</td>
+                    <td>${isUSD ? '$' + item.avg : item.avg.toLocaleString()}</td>
+                    <td style="color:#38bdf8;">${priceKRW.toLocaleString()}원</td>
+                    <td style="color:#10b981;"><b>${Math.round(annualDivKRW).toLocaleString()}원</b></td>
                 `;
                 tbody.appendChild(row);
             });
 
-            document.getElementById('total-invest').innerText = `${Math.round(totalInvestKRW).toLocaleString()} 원`;
-            document.getElementById('total-dividend').innerText = `${Math.round(totalDivKRW).toLocaleString()} 원`;
+            // 총합 업데이트
+            document.getElementById('total-invest').innerText = `${Math.round(totalInvest).toLocaleString()} 원`;
+            document.getElementById('total-dividend').innerText = `${Math.round(totalDiv).toLocaleString()} 원`;
+
+            // 월별 표 및 그래프 렌더링
+            renderMonthlySummary(monthlyTotals, totalDiv);
+            renderChart(monthlyTotals);
+        }
+
+        function renderMonthlySummary(monthlyTotals, totalDiv) {
+            const mBody = document.getElementById('monthly-summary-body');
+            mBody.innerHTML = '';
+
+            monthlyTotals.forEach((val, idx) => {
+                const ratio = totalDiv > 0 ? ((val / totalDiv) * 100).toFixed(1) : 0;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="text-align:left;"><b>${idx + 1}월</b></td>
+                    <td style="color:#10b981;"><b>${Math.round(val).toLocaleString()} 원</b></td>
+                    <td style="color:#94a3b8;">${ratio}%</td>
+                `;
+                mBody.appendChild(row);
+            });
+        }
+
+        function renderChart(monthlyData) {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+                    datasets: [{
+                        label: '월별 배당금 (원)',
+                        data: monthlyData.map(v => Math.round(v)),
+                        backgroundColor: '#10b981',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
         }
 
         loadData();

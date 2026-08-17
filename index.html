@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>자동 연동 배당 가계부 (세후 기준)</title>
+    <title>자동 연동 배당 가계부 (계좌별 세금 적용)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -26,7 +26,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 850px;
             margin: 0 auto;
         }
 
@@ -126,6 +126,16 @@
             border-bottom: 1px solid var(--border);
         }
 
+        .badge-acc {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            background: #334155;
+            color: #38bdf8;
+        }
+
         .btn-action {
             background: none;
             border: none;
@@ -152,7 +162,7 @@
             max-width: 350px;
         }
 
-        .modal-content input {
+        .modal-content input, .modal-content select {
             width: 100%;
             padding: 10px;
             margin: 8px 0;
@@ -184,8 +194,8 @@
 <div class="container">
     <div class="header">
         <div>
-            <h1>자동 연동 배당 가계부 (세후)</h1>
-            <p>미국 15%, 한국 15.4% 세금 차감 후 실수령액 기준</p>
+            <h1>자동 연동 배당 가계부</h1>
+            <p>계좌 유형별(일반/ISA/연금) 맞춤 세율 자동 반영</p>
         </div>
         <button class="btn-add" onclick="openModal('add')">+ 종목 추가</button>
     </div>
@@ -206,7 +216,7 @@
     </div>
 
     <!-- 차트 구역 -->
-    <div class="section-title">세후 배당 분석 시각화</div>
+    <div class="section-title">배당 분석 시각화</div>
     <div class="chart-grid">
         <div class="chart-card">
             <h4>월별 실수령 배당금 추이 (원)</h4>
@@ -224,11 +234,12 @@
         <table>
             <thead>
                 <tr>
+                    <th>계좌</th>
                     <th>종목명/티커</th>
                     <th>수량</th>
                     <th>내 평단가</th>
                     <th>현재가(자동)</th>
-                    <th>연간 세후 주당 배당금</th>
+                    <th>연간 주당 배당금(세후)</th>
                     <th>지급월</th>
                     <th>관리</th>
                 </tr>
@@ -243,7 +254,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>종목명</th>
+                    <th>종목명 (계좌)</th>
                     <th>1월</th><th>2월</th><th>3월</th><th>4월</th>
                     <th>5월</th><th>6월</th><th>7월</th><th>8월</th>
                     <th>9월</th><th>10월</th><th>11월</th><th>12월</th>
@@ -263,6 +274,11 @@
     <div class="modal-content">
         <h3 id="modal-title">종목 추가</h3>
         <input type="hidden" id="edit-index">
+        <select id="input-account">
+            <option value="일반">일반 계좌</option>
+            <option value="ISA">ISA 계좌</option>
+            <option value="연금저축/IRP">연금저축 / IRP</option>
+        </select>
         <input type="text" id="input-name" placeholder="종목명/티커 (예: JEPI, 삼성전자)">
         <input type="number" id="input-qty" placeholder="수량 (예: 10)">
         <input type="number" id="input-price" placeholder="평단가 (원/달러)" step="any">
@@ -279,9 +295,9 @@
     let pieChartInstance = null;
     
     let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
-        { name: "JEPI", qty: 373, price: 57.09 },
-        { name: "GPIX", qty: 287, price: 54.96 },
-        { name: "삼성전자", qty: 55, price: 269454 }
+        { account: "일반", name: "JEPI", qty: 373, price: 57.09 },
+        { account: "일반", name: "GPIX", qty: 287, price: 54.96 },
+        { account: "일반", name: "삼성전자", qty: 55, price: 269454 }
     ];
 
     async function init() {
@@ -311,6 +327,14 @@
         return {};
     }
 
+    // 계좌 및 종목 국적에 따른 세율 반환
+    function getTaxRate(accountType, isUSD) {
+        if (accountType === "ISA" || accountType === "연금저축/IRP") {
+            return 0.0; // 과세이연 및 비과세 혜택 반영 (수령 시점 전 배당금 100% 재투자 기준)
+        }
+        return isUSD ? 0.15 : 0.154; // 일반 계좌: 미국 15%, 한국 15.4%
+    }
+
     function render() {
         const tbody = document.getElementById('portfolio-body');
         tbody.innerHTML = '';
@@ -324,6 +348,7 @@
         const stockDivSums = [];
 
         myPortfolio.forEach((item, index) => {
+            const accType = item.account || "일반";
             const liveData = findLiveData(item.name);
             const curPrice = liveData.price || 0;
             const rawDivPerShare = liveData.divPerShare || 0;
@@ -332,8 +357,8 @@
             
             const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
 
-            // 배당소득세율 적용 (미국주식 15%, 한국주식 15.4%)
-            const taxRate = isUSD ? 0.15 : 0.154;
+            // 계좌별 맞춤 세율 계산
+            const taxRate = getTaxRate(accType, isUSD);
             const netDivPerShare = rawDivPerShare * (1 - taxRate);
 
             const investAmount = item.qty * item.price;
@@ -344,11 +369,12 @@
 
             totalInvestKRW += investKRW;
             totalNetDividendKRW += netDividendKRW;
-            stockDivSums.push({ name: item.name, value: Math.round(netDividendKRW) });
+            stockDivSums.push({ name: `${item.name}(${accType})`, value: Math.round(netDividendKRW) });
 
-            // 1. 보유 종목 리스트 랜더링
+            // 1. 보유 종목 테이블 랜더링
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td><span class="badge-acc">${accType}</span></td>
                 <td><strong>${item.name}</strong></td>
                 <td>${item.qty}주</td>
                 <td>${item.price.toLocaleString()}</td>
@@ -373,10 +399,10 @@
                 }
             });
 
-            monthlyRows.push({ name: item.name, divs: rowDivs, total: netDividendKRW });
+            monthlyRows.push({ name: `${item.name} (${accType})`, divs: rowDivs, total: netDividendKRW });
         });
 
-        // 요약 카드
+        // 요약 정보
         document.getElementById('total-invest').innerText = Math.round(totalInvestKRW).toLocaleString() + ' 원';
         document.getElementById('total-dividend').innerText = Math.round(totalNetDividendKRW).toLocaleString() + ' 원';
         const avgYield = totalInvestKRW > 0 ? ((totalNetDividendKRW / totalInvestKRW) * 100).toFixed(2) : "0.00";
@@ -464,12 +490,14 @@
             title.innerText = '종목 수정';
             const item = myPortfolio[index];
             document.getElementById('edit-index').value = index;
+            document.getElementById('input-account').value = item.account || "일반";
             document.getElementById('input-name').value = item.name;
             document.getElementById('input-qty').value = item.qty;
             document.getElementById('input-price').value = item.price;
         } else {
             title.innerText = '종목 추가';
             document.getElementById('edit-index').value = '';
+            document.getElementById('input-account').value = "일반";
             document.getElementById('input-name').value = '';
             document.getElementById('input-qty').value = '';
             document.getElementById('input-price').value = '';
@@ -483,6 +511,7 @@
 
     function saveStock() {
         const indexStr = document.getElementById('edit-index').value;
+        const account = document.getElementById('input-account').value;
         const name = document.getElementById('input-name').value.trim();
         const qty = parseFloat(document.getElementById('input-qty').value);
         const price = parseFloat(document.getElementById('input-price').value);
@@ -493,9 +522,9 @@
         }
 
         if (indexStr !== '') {
-            myPortfolio[parseInt(indexStr)] = { name, qty, price };
+            myPortfolio[parseInt(indexStr)] = { account, name, qty, price };
         } else {
-            myPortfolio.push({ name, qty, price });
+            myPortfolio.push({ account, name, qty, price });
         }
 
         closeModal();

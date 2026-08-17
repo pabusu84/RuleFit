@@ -276,14 +276,13 @@
     <option value="GPIX">GPIX - 골드만삭스 S&P500 커버드콜</option>
     <option value="SCHD">SCHD - 미국 배당성장 ETF</option>
     <option value="O">O - 리얼티인컴</option>
-    <option value="삼성전자">삼성전자 (005930)</option>
-    <option value="삼성전자우">삼성전자우 (005935)</option>
-    <option value="SK하이닉스">SK하이닉스 (000660)</option>
-    <option value="현대차2우B">현대차2우B (005387)</option>
-    <option value="삼성SDI">삼성SDI (006400)</option>
-    <option value="두산에너빌리티">두산에너빌리티 (034020)</option>
-    <option value="TIGER 배당커버드콜액티브">TIGER 배당커버드콜액티브 (472150)</option>
-    <option value="TIME 미국나스닥100액티브">TIME 미국나스닥100액티브 (426030)</option>
+    <option value="005930.KS">삼성전자 (005930.KS)</option>
+    <option value="005935.KS">삼성전자우 (005935.KS)</option>
+    <option value="000660.KS">SK하이닉스 (000660.KS)</option>
+    <option value="005387.KS">현대차2우B (005387.KS)</option>
+    <option value="006400.KS">삼성SDI (006400.KS)</option>
+    <option value="034020.KS">두산에너빌리티 (034020.KS)</option>
+    <option value="472150.KS">TIGER 배당커버드콜액티브 (472150.KS)</option>
 </datalist>
 
 <!-- 모달 -->
@@ -307,11 +306,17 @@
 </div>
 
 <script>
+    // 모바일 진단용 자바스크립트 오류 팝업
+    window.onerror = function(msg, url, line) {
+        alert("⚠️ [앱 자바스크립트 오류]\n내용: " + msg + "\n줄 번호: " + line);
+        return false;
+    };
+
     let marketData = { stocks: {}, exchangeRate: 1350 };
     let barChartInstance = null;
     let pieChartInstance = null;
     
-    // 한국 종목 티커/번호 -> 한글 이름 매핑 테이블
+    // 한국 종목 티커 -> 한글 이름 매핑
     const KOREAN_STOCK_MAP = {
         "005930": "삼성전자", "005930.KS": "삼성전자",
         "005935": "삼성전자우", "005935.KS": "삼성전자우",
@@ -319,21 +324,27 @@
         "005387": "현대차2우B", "005387.KS": "현대차2우B",
         "006400": "삼성SDI", "006400.KS": "삼성SDI",
         "034020": "두산에너빌리티", "034020.KS": "두산에너빌리티",
-        "472150": "TIGER 배당커버드콜액티브", "472150.KS": "TIGER 배당커버드콜액티브",
-        "426030": "TIME 미국나스닥100액티브", "426030.KS": "TIME 미국나스닥100액티브"
+        "472150": "TIGER 배당커버드콜액티브", "472150.KS": "TIGER 배당커버드콜액티브"
     };
 
     let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
         { account: "일반", name: "JEPI", qty: 373, price: 57.09 },
         { account: "일반", name: "GPIX", qty: 287, price: 54.96 },
-        { account: "일반", name: "삼성전자", qty: 55, price: 269454 }
+        { account: "일반", name: "005930.KS", qty: 55, price: 269454 }
     ];
 
     async function init() {
         try {
             const res = await fetch('./data.json?t=' + new Date().getTime());
-            if (res.ok) marketData = await res.json();
+            
+            if (!res.ok) {
+                alert("⚠️ data.json 파일을 찾을 수 없습니다.\n(상태 코드: " + res.status + ")\nGitHub에 data.json이 정상 생성되었는지 확인해 주세요.");
+                return;
+            }
+            
+            marketData = await res.json();
         } catch (e) {
+            alert("⚠️ data.json 형식(문법)에 오류가 있습니다!\n내용: " + e.message + "\n\ndata.json 파일에 복사할 때 괄호나 쉼표 오타가 없는지 점검이 필요합니다.");
             console.error("data.json 로드 오류", e);
         }
         render();
@@ -343,15 +354,11 @@
         return (str || '').toString().replace(/\s+/g, '').toUpperCase();
     }
 
-    // 종목 표시용 이름 가공 (한국 종목 티커/번호는 한글로 반환)
     function getDisplayName(rawName) {
         const key = cleanStr(rawName);
         if (KOREAN_STOCK_MAP[key]) return KOREAN_STOCK_MAP[key];
-        
-        // .KS 제거 후 검색
         const noKsKey = key.replace(".KS", "");
         if (KOREAN_STOCK_MAP[noKsKey]) return KOREAN_STOCK_MAP[noKsKey];
-
         return rawName.toUpperCase();
     }
 
@@ -387,7 +394,7 @@
 
         myPortfolio.forEach((item, index) => {
             const accType = item.account || "일반";
-            const displayName = getDisplayName(item.name); // 한글 표기 변환
+            const displayName = getDisplayName(item.name);
             const liveData = findLiveData(item.name);
             
             const curPrice = liveData.price || 0;
@@ -410,7 +417,6 @@
             totalNetDividendKRW += netDividendKRW;
             stockDivSums.push({ name: `${displayName}(${accType})`, value: Math.round(netDividendKRW) });
 
-            // 1. 보유 종목 리스트 랜더링
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="badge-acc">${accType}</span></td>
@@ -427,7 +433,6 @@
             `;
             tbody.appendChild(tr);
 
-            // 2. 월별 실수령액 계산
             const divPerOccurence = months.length > 0 ? netDividendKRW / months.length : 0;
             const rowDivs = new Array(12).fill(0);
 
@@ -558,9 +563,6 @@
             alert('올바른 데이터를 입력해주세요.');
             return;
         }
-
-        // 종목 입력 시 자동으로 이름 가공
-        name = getDisplayName(name);
 
         if (indexStr !== '') {
             myPortfolio[parseInt(indexStr)] = { account, name, qty, price };

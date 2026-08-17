@@ -1,0 +1,164 @@
+{
+  "stocks": {
+    "JEPQ": {
+      "ticker": "JEPQ",
+      "price": 60.53,
+      "divPerShare": 4.03,
+      "months": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "currency": "USD"
+    },
+    "jepq": {
+      "ticker": "JEPQ",
+      "price": 60.53,
+      "divPerShare": 4.03,
+      "months": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "currency": "USD"
+    },
+    "SCHD": {
+      "ticker": "SCHD",
+      "price": 34.52,
+      "divPerShare": 0.51,
+      "months": [
+        3,
+        6
+      ],
+      "currency": "USD"
+    },
+    "schd": {
+      "ticker": "SCHD",
+      "price": 34.52,
+      "divPerShare": 0.51,
+      "months": [
+        3,
+        6
+      ],
+      "currency": "USD"
+    },
+    "O": {
+      "ticker": "O",
+      "price": 62.74,
+      "divPerShare": 3.25,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "currency": "USD"
+    },
+    "o": {
+      "ticker": "O",
+      "price": 62.74,
+      "divPerShare": 3.25,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "currency": "USD"
+    },
+    "삼성전자": {
+      "ticker": "005930.KS",
+      "price": 274500.0,
+      "divPerShare": 1496.0,
+      "months": [
+        3,
+        6
+      ],
+      "currency": "KRW"
+    },
+    "맥쿼리인프라": {
+      "ticker": "088980.KS",
+      "price": 9690.0,
+      "divPerShare": 350.0,
+      "months": [
+        6
+      ],
+      "currency": "KRW"
+    },
+    "SOL미국배당다우존스": {
+      "ticker": "446720.KS",
+      "price": 14165.0,
+      "divPerShare": 238.0,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "currency": "KRW"
+    },
+    "sol미국배당다우존스": {
+      "ticker": "446720.KS",
+      "price": 14165.0,
+      "divPerShare": 238.0,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "currency": "KRW"
+    },
+    "TIGER미국배당다우존스": {
+      "ticker": "458730.KS",
+      "price": 15455.0,
+      "divPerShare": 257.0,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "currency": "KRW"
+    },
+    "tiger미국배당다우존스": {
+      "ticker": "458730.KS",
+      "price": 15455.0,
+      "divPerShare": 257.0,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "currency": "KRW"
+    }
+  },
+  "exchangeRate": 1413.92
+}

@@ -3,7 +3,7 @@
     "JEPQ": {
       "ticker": "JEPQ",
       "price": 60.53,
-      "divPerShare": 4.03,
+      "divPerShare": 0,
       "months": [
         2,
         3,
@@ -18,7 +18,7 @@
     "jepq": {
       "ticker": "JEPQ",
       "price": 60.53,
-      "divPerShare": 4.03,
+      "divPerShare": 0,
       "months": [
         2,
         3,
@@ -33,7 +33,7 @@
     "SCHD": {
       "ticker": "SCHD",
       "price": 34.52,
-      "divPerShare": 0.51,
+      "divPerShare": 0,
       "months": [
         3,
         6
@@ -43,7 +43,7 @@
     "schd": {
       "ticker": "SCHD",
       "price": 34.52,
-      "divPerShare": 0.51,
+      "divPerShare": 0,
       "months": [
         3,
         6
@@ -93,7 +93,7 @@
     "맥쿼리인프라": {
       "ticker": "088980.KS",
       "price": 9690.0,
-      "divPerShare": 350.0,
+      "divPerShare": 0,
       "months": [
         6
       ],
@@ -102,7 +102,7 @@
     "SOL미국배당다우존스": {
       "ticker": "446720.KS",
       "price": 14165.0,
-      "divPerShare": 238.0,
+      "divPerShare": 0,
       "months": [
         1,
         2,
@@ -117,7 +117,7 @@
     "sol미국배당다우존스": {
       "ticker": "446720.KS",
       "price": 14165.0,
-      "divPerShare": 238.0,
+      "divPerShare": 0,
       "months": [
         1,
         2,
@@ -132,14 +132,8 @@
     "TIGER미국배당다우존스": {
       "ticker": "458730.KS",
       "price": 15455.0,
-      "divPerShare": 257.0,
+      "divPerShare": 0,
       "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
         7
       ],
       "currency": "KRW"
@@ -147,18 +141,12 @@
     "tiger미국배당다우존스": {
       "ticker": "458730.KS",
       "price": 15455.0,
-      "divPerShare": 257.0,
+      "divPerShare": 0,
       "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
         7
       ],
       "currency": "KRW"
     }
   },
-  "exchangeRate": 1413.94
+  "exchangeRate": 1414.75
 }

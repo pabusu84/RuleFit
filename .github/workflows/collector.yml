@@ -5,12 +5,16 @@ on:
     - cron: '0 22 * * *'  # 매일 한국시간 오전 7시 실행
   push:
     paths:
-      - 'targets.json'     # targets.json이 수정되면 즉시 실행
+      - 'targets.json'     # targets.json 변경 시 자동 실행
   workflow_dispatch:      # 수동 실행 버튼 제공
 
 jobs:
   build:
-    runs-runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # 오타 수정 (runs-runs-on -> runs-on)
+
+    permissions:
+      contents: write      # data.json 파일을 커밋/푸시할 수 있는 쓰기 권한 부여
+
     steps:
       - uses: actions/checkout@v3
 

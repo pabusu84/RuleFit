@@ -246,6 +246,8 @@
                 <select id="add-account">
                     <option value="일반">일반</option>
                     <option value="ISA">ISA</option>
+                    <option value="IRP">IRP</option>
+                    <option value="연금저축">연금저축</option>
                 </select>
             </div>
             <div class="modal-btns">
@@ -270,7 +272,6 @@
             "472150.KS": "TIGER 배당커버드콜액티브"
         };
 
-        // data.json에 파싱되지 않은 경우 사용되는 기본 백업 데이터 (현재가, 주당배당금, 지급월)
         const BACKUP_STOCKS = {
             "462330.KS": { name: "TIME 미국나스닥100액티브", price: 11000, divPerShare: 120, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
             "426030.KS": { name: "TIME 미국나스닥100액티브", price: 11000, divPerShare: 120, months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
@@ -321,15 +322,12 @@
                 const rawCode = item.code || "";
                 const cleanCode = rawCode.replace('.KS', '');
                 
-                // cachedStocks 및 BACKUP_STOCKS 다중 키 검색
                 const backup = BACKUP_STOCKS[rawCode] || BACKUP_STOCKS[cleanCode] || BACKUP_STOCKS[item.name] || {};
                 const info = cachedStocks[rawCode] || cachedStocks[cleanCode] || cachedStocks[item.name] || backup || { price: 0, divPerShare: 0, months: [], currency: "KRW" };
 
-                // 가격 및 주당배당금 매핑 (0인 경우 백업값 활용)
                 const price = info.price || backup.price || 0;
                 const divPerShare = info.divPerShare || backup.divPerShare || 0;
 
-                // 종목명 매핑
                 let displayName = info.name || STOCK_MAP[rawCode] || STOCK_MAP[cleanCode] || item.name;
 
                 const isUSD = info.currency === 'USD' || ['GPIX', 'JEPQ', 'AAPL'].includes(rawCode);
@@ -338,18 +336,22 @@
                 const divKRWPerShare = isUSD ? (divPerShare * cachedRate) : divPerShare;
                 
                 const investKRW = isUSD ? (item.qty * item.avg * cachedRate) : (item.qty * item.avg);
-                const annualDivKRW = item.qty * divKRWPerShare * (item.account === 'ISA' ? 1.0 : 0.846);
-                const yieldRate = investKRW > 0 ? ((annualDivKRW / investKRW) * 100).toFixed(1) : "0.0";
                 
+                // 계좌별 세후 적용 (일반: 15.4% 차감 = 0.846 곱함 / 절세계좌: 100% 반영 = 1.0 곱함)
+                const taxFactor = (item.account === 'ISA' || item.account === 'IRP' || item.account === '연금저축') ? 1.0 : 0.846;
+                const annualDivKRW = item.qty * divKRWPerShare * taxFactor;
+                
+                const yieldRate = investKRW > 0 ? ((annualDivKRW / investKRW) * 100).toFixed(1) : "0.0";
                 const rawMonths = (info.months && info.months.length > 0) ? info.months : (backup.months || [1,2,3,4,5,6,7,8,9,10,11,12]);
 
                 return { ...item, name: displayName, originalIndex, info, isUSD, divPerShareText, priceKRW, investKRW, annualDivKRW, yieldRate, months: rawMonths };
             });
 
-            // 정렬: 계좌 (일반 -> ISA) -> 보유 금액 내림차순
+            // 정렬 우선순위: 일반 -> ISA -> IRP -> 연금저축, 그 후 보유금액 내림차순
+            const accountOrder = { "일반": 1, "ISA": 2, "IRP": 3, "연금저축": 4 };
             processedList.sort((a, b) => {
-                const rankA = a.account === '일반' ? 1 : (a.account === 'ISA' ? 2 : 3);
-                const rankB = b.account === '일반' ? 1 : (b.account === 'ISA' ? 2 : 3);
+                const rankA = accountOrder[a.account] || 5;
+                const rankB = accountOrder[b.account] || 5;
                 if (rankA !== rankB) return rankA - rankB;
                 return b.investKRW - a.investKRW;
             });
@@ -444,7 +446,7 @@
             document.getElementById('add-search').value = item.name || item.code;
             document.getElementById('add-qty').value = item.qty;
             document.getElementById('add-avg').value = item.avg;
-            document.getElementById('add-account').value = item.account;
+            document.getElementById('add-account').value = item.account || "일반";
             document.getElementById('stockModal').style.display = 'flex';
         }
 

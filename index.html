@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RuleFit - 배당 관리 앱</title>
+    <title>자동 연동 배당 가계부</title>
     <style>
         :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --accent-color: #2563eb;
-            --text-color: #ffffff;
-            --text-sub: #a0a0a0;
-            --border-color: #333333;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #10b981;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: #334155;
+            --danger: #f43f5e;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-color);
+            color: var(--text-main);
             margin: 0;
             padding: 16px;
         }
@@ -31,81 +32,129 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
         }
 
         .header h1 {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
+            margin: 0 0 4px 0;
+        }
+
+        .header p {
+            font-size: 0.8rem;
+            color: var(--text-sub);
             margin: 0;
         }
 
-        .info-bar {
+        .btn-add {
+            background-color: var(--primary);
+            color: #000;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-title {
             font-size: 0.85rem;
             color: var(--text-sub);
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            background: var(--card-bg);
-            padding: 10px 14px;
-            border-radius: 8px;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border: 1px solid var(--border-color);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 8px;
         }
 
-        .stock-name {
-            font-size: 1.1rem;
+        .summary-value {
+            font-size: 1.6rem;
             font-weight: bold;
         }
 
-        .stock-ticker {
-            font-size: 0.8rem;
-            color: var(--text-sub);
+        .table-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow-x: auto;
         }
 
-        .stock-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            font-size: 0.9rem;
-            margin-top: 8px;
-        }
-
-        .info-label {
-            color: var(--text-sub);
-        }
-
-        .info-value {
-            text-align: right;
-            font-weight: 600;
-        }
-
-        .badge-month {
-            display: inline-block;
-            background-color: #2a2a2a;
-            color: #60a5fa;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            margin-right: 4px;
-        }
-
-        #loading {
+        table {
+            width: 100%;
+            border-collapse: collapse;
             text-align: center;
-            padding: 40px;
+            font-size: 0.85rem;
+        }
+
+        th {
+            background: #111827;
             color: var(--text-sub);
+            padding: 12px 6px;
+            font-weight: normal;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .btn-del {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 350px;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: #fff;
+            border-radius: 6px;
+        }
+
+        .modal-btns {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+
+        .modal-btns button {
+            width: 48%;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -113,117 +162,163 @@
 
 <div class="container">
     <div class="header">
-        <h1>RuleFit 배당 트래커</h1>
+        <div>
+            <h1>자동 연동 배당 가계부</h1>
+            <p>티커·수량·평단가만 입력하면 배당금 자동 계산</p>
+        </div>
+        <button class="btn-add" onclick="openModal()">+ 종목 추가</button>
     </div>
 
-    <div class="info-bar">
-        <span>기준 환율: <strong id="exchange-rate">1,350</strong> 원/USD</span>
-        <span id="last-updated">불러오는 중...</span>
+    <div class="summary-card">
+        <div class="summary-title">총 매수 금액</div>
+        <div class="summary-value" id="total-invest">0 원</div>
     </div>
 
-    <div id="loading">데이터를 불러오는 중입니다...</div>
-    <div id="stock-list"></div>
+    <div class="summary-card">
+        <div class="summary-title">연간 예상 배당금</div>
+        <div class="summary-value" style="color: var(--primary);" id="total-dividend">0 원</div>
+    </div>
+
+    <div class="summary-card">
+        <div class="summary-title">평균 배당수익률</div>
+        <div class="summary-value" style="color: #818cf8;" id="avg-yield">0.00 %</div>
+    </div>
+
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>종목명/티커</th>
+                    <th>수량</th>
+                    <th>내 평단가</th>
+                    <th>현재가<br>(자동)</th>
+                    <th>연간 주당<br>배당금 (자동)</th>
+                    <th>지급월<br>(자동)</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="portfolio-body">
+                <!-- 종목 노출 영역 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 종목 추가 모달 -->
+<div class="modal" id="addModal">
+    <div class="modal-content">
+        <h3>종목 추가</h3>
+        <input type="text" id="input-name" placeholder="종목명/티커 (예: Jepq, 삼성전자)">
+        <input type="number" id="input-qty" placeholder="수량 (예: 10)">
+        <input type="number" id="input-price" placeholder="평단가 (원/달러)">
+        <div class="modal-btns">
+            <button onclick="closeModal()" style="background: #475569; color: white;">취소</button>
+            <button onclick="addStock()" style="background: var(--primary); color: black;">추가</button>
+        </div>
+    </div>
 </div>
 
 <script>
-    async function loadData() {
-        const loadingEl = document.getElementById('loading');
-        const listEl = document.getElementById('stock-list');
-        const exRateEl = document.getElementById('exchange-rate');
-        const updatedEl = document.getElementById('last-updated');
+    let marketData = { stocks: {}, exchangeRate: 1350 };
+    
+    // 로컬스토리지 저장 포트폴리오
+    let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
+        { name: "Jepq", qty: 373, price: 57.08 },
+        { name: "삼성전자", qty: 55, price: 269454 }
+    ];
 
+    async function init() {
         try {
-            // 캐시 방지 파라미터(?t=timestamp) 적용
-            const response = await fetch('./data.json?t=' + new Date().getTime());
-            
-            if (!response.ok) {
-                throw new Error("data.json 파일을 불러올 수 없습니다.");
+            // 캐시 방지 적용하여 data.json 로드
+            const res = await fetch('./data.json?t=' + new Date().getTime());
+            if (res.ok) {
+                marketData = await res.json();
+            }
+        } catch (e) {
+            console.error("data.json 로드 오류", e);
+        }
+        render();
+    }
+
+    function render() {
+        const tbody = document.getElementById('portfolio-body');
+        tbody.innerHTML = '';
+
+        let totalInvestKRW = 0;
+        let totalDividendKRW = 0;
+        const rate = marketData.exchangeRate || 1350;
+
+        myPortfolio.forEach((item, index) => {
+            // marketData 조회 (소문자/대문자/한글 키 대응)
+            const stockKey = item.name.trim();
+            const liveData = marketData.stocks[stockKey] || 
+                             marketData.stocks[stockKey.toLowerCase()] || 
+                             marketData.stocks[stockKey.toUpperCase()] || {};
+
+            const curPrice = liveData.price || 0;
+            const divPerShare = liveData.divPerShare || 0;
+            const months = (liveData.months && liveData.months.length > 0) ? liveData.months.join(',') + '월' : '-';
+            const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
+
+            // 투자금 및 배당금 계산
+            const investAmount = item.qty * item.price;
+            const dividendAmount = item.qty * divPerShare;
+
+            if (isUSD) {
+                totalInvestKRW += investAmount * rate;
+                totalDividendKRW += dividendAmount * rate;
+            } else {
+                totalInvestKRW += investAmount;
+                totalDividendKRW += dividendAmount;
             }
 
-            const data = await response.json();
-            
-            // 환율 표시
-            if (data.exchangeRate) {
-                exRateEl.innerText = Number(data.exchangeRate).toLocaleString();
-            }
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${item.name}</strong></td>
+                <td>${item.qty}주</td>
+                <td>${item.price.toLocaleString()}</td>
+                <td style="color: #38bdf8;">${curPrice ? curPrice.toLocaleString() : '0'}</td>
+                <td style="color: var(--primary);">${divPerShare ? divPerShare.toLocaleString() : '0'}</td>
+                <td>${months}</td>
+                <td><button class="btn-del" onclick="deleteStock(${index})">🗑️</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
 
-            // 업데이트 시간 표시
-            const now = new Date();
-            updatedEl.innerText = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} 갱신됨`;
+        // 요약 정보 업데이트
+        document.getElementById('total-invest').innerText = Math.round(totalInvestKRW).toLocaleString() + ' 원';
+        document.getElementById('total-dividend').innerText = Math.round(totalDividendKRW).toLocaleString() + ' 원';
+        
+        const avgYield = totalInvestKRW > 0 ? ((totalDividendKRW / totalInvestKRW) * 100).toFixed(2) : "0.00";
+        document.getElementById('avg-yield').innerText = avgYield + ' %';
 
-            // 종목 리스트 랜더링
-            loadingEl.style.display = 'none';
-            listEl.innerHTML = '';
+        localStorage.setItem('myPortfolio', JSON.stringify(myPortfolio));
+    }
 
-            const stocks = data.stocks;
-            
-            // 중복 키 제거하여 기본 리스트 생성
-            const uniqueTickers = Array.from(new Set(Object.values(stocks).map(s => s.ticker)));
+    function openModal() { document.getElementById('addModal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('addModal').style.display = 'none'; }
 
-            uniqueTickers.forEach(ticker => {
-                const item = Object.values(stocks).find(s => s.ticker === ticker);
-                if (!item) return;
+    function addStock() {
+        const name = document.getElementById('input-name').value;
+        const qty = parseFloat(document.getElementById('input-qty').value);
+        const price = parseFloat(document.getElementById('input-price').value);
 
-                const name = Object.keys(stocks).find(key => stocks[key].ticker === ticker && key === key.toUpperCase()) || ticker;
-                const isKRW = item.currency === "KRW";
-                const priceFormatted = isKRW 
-                    ? `₩${Number(item.price).toLocaleString()}` 
-                    : `$${Number(item.price).toFixed(2)}`;
-
-                const divFormatted = isKRW 
-                    ? `₩${Number(item.divPerShare).toLocaleString()}` 
-                    : `$${Number(item.divPerShare).toFixed(2)}`;
-
-                // 배당 수익률 계산
-                const yieldPct = item.price > 0 ? ((item.divPerShare / item.price) * 100).toFixed(2) : "0.00";
-
-                // 배당월 태그
-                const monthsHtml = item.months && item.months.length > 0
-                    ? item.months.map(m => `<span class="badge-month">${m}월</span>`).join('')
-                    : '<span style="color:#666;">정보 없음</span>';
-
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div>
-                            <span class="stock-name">${name}</span>
-                            <span class="stock-ticker">(${item.ticker})</span>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 1.1rem; font-weight: bold;">${priceFormatted}</div>
-                        </div>
-                    </div>
-                    <div class="stock-info">
-                        <div>
-                            <span class="info-label">연간 주당 배당금</span>
-                        </div>
-                        <div class="info-value">${divFormatted}</div>
-
-                        <div>
-                            <span class="info-label">예상 배당수익률</span>
-                        </div>
-                        <div class="info-value" style="color: #34d399;">${yieldPct}%</div>
-
-                        <div>
-                            <span class="info-label">배당 지급월</span>
-                        </div>
-                        <div class="info-value">${monthsHtml}</div>
-                    </div>
-                `;
-                listEl.appendChild(card);
-            });
-
-        } catch (error) {
-            console.error(error);
-            loadingEl.innerText = "데이터 연동 실패: data.json 파일이 없거나 브라우저 오류입니다.";
-            loadingEl.style.color = "#ef4444";
+        if (name && qty && price) {
+            myPortfolio.push({ name, qty, price });
+            closeModal();
+            render();
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-qty').value = '';
+            document.getElementById('input-price').value = '';
         }
     }
 
-    // 앱 실행시 데이터 로드
-    window.onload = loadData;
-</script>
+    function deleteStock(index) {
+        myPortfolio.splice(index, 1);
+        render();
+    }
 
+    window.onload = init;
+</script>
 </body>
 </html>

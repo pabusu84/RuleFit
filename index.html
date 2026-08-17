@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>자동 연동 배당 가계부</title>
-    <!-- Chart.js CDN 추가 -->
+    <title>자동 연동 배당 가계부 (세후 기준)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -185,8 +184,8 @@
 <div class="container">
     <div class="header">
         <div>
-            <h1>자동 연동 배당 가계부</h1>
-            <p>티커·수량·평단가만 입력하면 배당금 자동 계산</p>
+            <h1>자동 연동 배당 가계부 (세후)</h1>
+            <p>미국 15%, 한국 15.4% 세금 차감 후 실수령액 기준</p>
         </div>
         <button class="btn-add" onclick="openModal('add')">+ 종목 추가</button>
     </div>
@@ -197,24 +196,24 @@
     </div>
 
     <div class="summary-card">
-        <div class="summary-title">연간 예상 배당금</div>
+        <div class="summary-title">연간 예상 실수령 배당금 (세후)</div>
         <div class="summary-value" style="color: var(--primary);" id="total-dividend">0 원</div>
     </div>
 
     <div class="summary-card">
-        <div class="summary-title">평균 배당수익률</div>
+        <div class="summary-title">평균 세후 배당수익률</div>
         <div class="summary-value" style="color: #818cf8;" id="avg-yield">0.00 %</div>
     </div>
 
     <!-- 차트 구역 -->
-    <div class="section-title">배당 분석 시각화</div>
+    <div class="section-title">세후 배당 분석 시각화</div>
     <div class="chart-grid">
         <div class="chart-card">
-            <h4>월별 배당금 추이 (원)</h4>
+            <h4>월별 실수령 배당금 추이 (원)</h4>
             <canvas id="monthlyChart"></canvas>
         </div>
         <div class="chart-card">
-            <h4>종목별 배당 비중</h4>
+            <h4>종목별 세후 배당 비중</h4>
             <canvas id="portfolioChart"></canvas>
         </div>
     </div>
@@ -229,7 +228,7 @@
                     <th>수량</th>
                     <th>내 평단가</th>
                     <th>현재가(자동)</th>
-                    <th>연간 주당 배당금</th>
+                    <th>연간 세후 주당 배당금</th>
                     <th>지급월</th>
                     <th>관리</th>
                 </tr>
@@ -239,7 +238,7 @@
     </div>
 
     <!-- 월별 배당금 표 -->
-    <div class="section-title">월별 배당금 예측표 (원화 기준)</div>
+    <div class="section-title">월별 실수령 배당금 예측표 (원화 기준)</div>
     <div class="table-card">
         <table>
             <thead>
@@ -248,7 +247,7 @@
                     <th>1월</th><th>2월</th><th>3월</th><th>4월</th>
                     <th>5월</th><th>6월</th><th>7월</th><th>8월</th>
                     <th>9월</th><th>10월</th><th>11월</th><th>12월</th>
-                    <th style="color: var(--primary);">연간 합계</th>
+                    <th style="color: var(--primary);">연간 세후 합계</th>
                 </tr>
             </thead>
             <tbody id="monthly-body"></tbody>
@@ -317,31 +316,35 @@
         tbody.innerHTML = '';
 
         let totalInvestKRW = 0;
-        let totalDividendKRW = 0;
+        let totalNetDividendKRW = 0;
         const rate = marketData.exchangeRate || 1350;
 
         const monthTotals = new Array(12).fill(0);
         const monthlyRows = [];
-        const stockDivSums = []; // 종목별 연간 배당금 합계
+        const stockDivSums = [];
 
         myPortfolio.forEach((item, index) => {
             const liveData = findLiveData(item.name);
             const curPrice = liveData.price || 0;
-            const divPerShare = liveData.divPerShare || 0;
+            const rawDivPerShare = liveData.divPerShare || 0;
             const months = liveData.months || [];
             const monthsText = months.length > 0 ? months.join(',') + '월' : '-';
             
             const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
 
+            // 배당소득세율 적용 (미국주식 15%, 한국주식 15.4%)
+            const taxRate = isUSD ? 0.15 : 0.154;
+            const netDivPerShare = rawDivPerShare * (1 - taxRate);
+
             const investAmount = item.qty * item.price;
-            const dividendAmount = item.qty * divPerShare;
+            const netDividendAmount = item.qty * netDivPerShare;
 
             const investKRW = isUSD ? investAmount * rate : investAmount;
-            const dividendKRW = isUSD ? dividendAmount * rate : dividendAmount;
+            const netDividendKRW = isUSD ? netDividendAmount * rate : netDividendAmount;
 
             totalInvestKRW += investKRW;
-            totalDividendKRW += dividendKRW;
-            stockDivSums.push({ name: item.name, value: Math.round(dividendKRW) });
+            totalNetDividendKRW += netDividendKRW;
+            stockDivSums.push({ name: item.name, value: Math.round(netDividendKRW) });
 
             // 1. 보유 종목 리스트 랜더링
             const tr = document.createElement('tr');
@@ -350,7 +353,7 @@
                 <td>${item.qty}주</td>
                 <td>${item.price.toLocaleString()}</td>
                 <td style="color: var(--accent);">${curPrice ? curPrice.toLocaleString() : '0'}</td>
-                <td style="color: var(--primary);">${divPerShare ? divPerShare.toLocaleString() : '0'}</td>
+                <td style="color: var(--primary);">${netDivPerShare ? netDivPerShare.toFixed(2) : '0'}</td>
                 <td>${monthsText}</td>
                 <td>
                     <button class="btn-action" onclick="openModal('edit', ${index})">✏️</button>
@@ -359,8 +362,8 @@
             `;
             tbody.appendChild(tr);
 
-            // 2. 월별 계산
-            const divPerOccurence = months.length > 0 ? dividendKRW / months.length : 0;
+            // 2. 월별 실수령액 계산
+            const divPerOccurence = months.length > 0 ? netDividendKRW / months.length : 0;
             const rowDivs = new Array(12).fill(0);
 
             months.forEach(m => {
@@ -370,17 +373,16 @@
                 }
             });
 
-            monthlyRows.push({ name: item.name, divs: rowDivs, total: dividendKRW });
+            monthlyRows.push({ name: item.name, divs: rowDivs, total: netDividendKRW });
         });
 
-        // 상단 요약 카드
+        // 요약 카드
         document.getElementById('total-invest').innerText = Math.round(totalInvestKRW).toLocaleString() + ' 원';
-        document.getElementById('total-dividend').innerText = Math.round(totalDividendKRW).toLocaleString() + ' 원';
-        const avgYield = totalInvestKRW > 0 ? ((totalDividendKRW / totalInvestKRW) * 100).toFixed(2) : "0.00";
+        document.getElementById('total-dividend').innerText = Math.round(totalNetDividendKRW).toLocaleString() + ' 원';
+        const avgYield = totalInvestKRW > 0 ? ((totalNetDividendKRW / totalInvestKRW) * 100).toFixed(2) : "0.00";
         document.getElementById('avg-yield').innerText = avgYield + ' %';
 
-        // 표 및 차트 그리기
-        renderMonthlyTable(monthlyRows, monthTotals, totalDividendKRW);
+        renderMonthlyTable(monthlyRows, monthTotals, totalNetDividendKRW);
         renderCharts(monthTotals, stockDivSums);
 
         localStorage.setItem('myPortfolio', JSON.stringify(myPortfolio));
@@ -397,13 +399,11 @@
             row.divs.forEach(val => {
                 cells += `<td>${val > 0 ? Math.round(val).toLocaleString() : '-'}</td>`;
             });
-            // 종목별 연간 합계 추가
             cells += `<td style="font-weight:bold; color:var(--primary);">${Math.round(row.total).toLocaleString()} 원</td>`;
             tr.innerHTML = cells;
             mBody.appendChild(tr);
         });
 
-        // 푸터 전체 합계
         let footerCells = `<td>합계</td>`;
         totals.forEach(sum => {
             footerCells += `<td>${sum > 0 ? Math.round(sum).toLocaleString() : '0'}</td>`;
@@ -413,7 +413,6 @@
     }
 
     function renderCharts(monthlyTotals, stockDivSums) {
-        // 1. 월별 막대 차트
         const ctxBar = document.getElementById('monthlyChart').getContext('2d');
         if (barChartInstance) barChartInstance.destroy();
         barChartInstance = new Chart(ctxBar, {
@@ -421,7 +420,7 @@
             data: {
                 labels: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
                 datasets: [{
-                    label: '월별 배당금 (원)',
+                    label: '실수령 배당금 (원)',
                     data: monthlyTotals.map(v => Math.round(v)),
                     backgroundColor: '#10b981',
                     borderRadius: 4
@@ -437,7 +436,6 @@
             }
         });
 
-        // 2. 종목별 도넛/파이 차트
         const ctxPie = document.getElementById('portfolioChart').getContext('2d');
         if (pieChartInstance) pieChartInstance.destroy();
         pieChartInstance = new Chart(ctxPie, {

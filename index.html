@@ -3,149 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>자동 배당 가계부</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>RuleFit - 배당 관리 앱</title>
     <style>
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        body { font-family: "Pretendard Variable", Pretendard, sans-serif; }
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #2563eb;
+            --text-color: #ffffff;
+            --text-sub: #a0a0a0;
+            --border-color: #333333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .info-bar {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            background: var(--card-bg);
+            padding: 10px 14px;
+            border-radius: 8px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .stock-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .stock-ticker {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+        }
+
+        .stock-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        .info-label {
+            color: var(--text-sub);
+        }
+
+        .info-value {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .badge-month {
+            display: inline-block;
+            background-color: #2a2a2a;
+            color: #60a5fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 4px;
+        }
+
+        #loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-sub);
+        }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-6">
-    <div class="max-w-5xl mx-auto space-y-6">
-        <header class="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700">
-            <div>
-                <h1 class="text-xl font-bold">자동 연동 배당 가계부</h1>
-                <p class="text-xs text-slate-400">티커·수량·평단가만 입력하면 배당금 자동 계산</p>
-            </div>
-            <button onclick="openModal()" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm hover:bg-emerald-400 transition"><i class="fa-solid fa-plus"></i> 종목 추가</button>
-        </header>
+<body>
 
-        <!-- 요약 카드 -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <span class="text-xs text-slate-400">총 매수 금액</span>
-                <div class="text-xl font-bold mt-1" id="totalInvested">0 원</div>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <span class="text-xs text-slate-400">연간 예상 배당금</span>
-                <div class="text-xl font-bold text-emerald-400 mt-1" id="totalAnnualDiv">0 원</div>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <span class="text-xs text-slate-400">평균 배당수익률</span>
-                <div class="text-xl font-bold text-indigo-400 mt-1" id="avgYield">0.00 %</div>
-            </div>
-        </div>
-
-        <!-- 종목 리스트 테이블 -->
-        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-            <table class="w-full text-left text-sm text-slate-300">
-                <thead class="bg-slate-900 text-xs text-slate-400 border-b border-slate-700">
-                    <tr>
-                        <th class="p-3">종목명/티커</th>
-                        <th class="p-3 text-right">수량</th>
-                        <th class="p-3 text-right">내 평단가</th>
-                        <th class="p-3 text-right">현재가(자동)</th>
-                        <th class="p-3 text-right">연간 주당배당금(자동)</th>
-                        <th class="p-3 text-center">지급월(자동)</th>
-                        <th class="p-3 text-center">관리</th>
-                    </tr>
-                </thead>
-                <tbody id="stockTableBody" class="divide-y divide-slate-700/50"></tbody>
-            </table>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>RuleFit 배당 트래커</h1>
     </div>
 
-    <!-- 입력 모달 -->
-    <div id="stockModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-md w-full space-y-4">
-            <h3 class="text-lg font-bold">보유 종목 입력</h3>
-            <form onsubmit="saveStock(event)" class="space-y-3">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">종목명 또는 티커 (예: SCHD, 삼성전자)</label>
-                    <input type="text" id="inputTicker" required placeholder="SCHD" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">보유 수량</label>
-                    <input type="number" id="inputQty" step="any" required placeholder="100" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">내 평단가</label>
-                    <input type="number" id="inputAvgPrice" step="any" required placeholder="75.5" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal()" class="px-3 py-1.5 bg-slate-700 rounded text-sm">취소</button>
-                    <button type="submit" class="px-4 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded text-sm">저장</button>
-                </div>
-            </form>
-        </div>
+    <div class="info-bar">
+        <span>기준 환율: <strong id="exchange-rate">1,350</strong> 원/USD</span>
+        <span id="last-updated">불러오는 중...</span>
     </div>
 
-    <script>
-        let marketData = {};
-        let myPortfolio = JSON.parse(localStorage.getItem('my_simple_portfolio') || '[]');
+    <div id="loading">데이터를 불러오는 중입니다...</div>
+    <div id="stock-list"></div>
+</div>
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const res = await fetch('data.json');
-                marketData = await res.json();
-            } catch(e) { console.log('Market data loading error:', e); }
-            render();
-        });
+<script>
+    async function loadData() {
+        const loadingEl = document.getElementById('loading');
+        const listEl = document.getElementById('stock-list');
+        const exRateEl = document.getElementById('exchange-rate');
+        const updatedEl = document.getElementById('last-updated');
 
-        function render() {
-            const tbody = document.getElementById('stockTableBody');
-            tbody.innerHTML = '';
-            let totalInvested = 0, totalAnnualDiv = 0;
+        try {
+            // 캐시 방지 파라미터(?t=timestamp) 적용
+            const response = await fetch('./data.json?t=' + new Date().getTime());
+            
+            if (!response.ok) {
+                throw new Error("data.json 파일을 불러올 수 없습니다.");
+            }
 
-            myPortfolio.forEach((item, index) => {
-                const autoInfo = marketData[item.ticker] || { price: 0, divPerShare: 0, months: [] };
-                const invested = item.qty * item.avgPrice;
-                const annualDiv = item.qty * autoInfo.divPerShare;
-                
-                totalInvested += invested;
-                totalAnnualDiv += annualDiv;
+            const data = await response.json();
+            
+            // 환율 표시
+            if (data.exchangeRate) {
+                exRateEl.innerText = Number(data.exchangeRate).toLocaleString();
+            }
 
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-700/40">
-                        <td class="p-3 font-bold text-white">${item.ticker}</td>
-                        <td class="p-3 text-right">${item.qty}주</td>
-                        <td class="p-3 text-right">${item.avgPrice.toLocaleString()}</td>
-                        <td class="p-3 text-right text-emerald-400">${autoInfo.price.toLocaleString()}</td>
-                        <td class="p-3 text-right text-indigo-300">${autoInfo.divPerShare.toLocaleString()}</td>
-                        <td class="p-3 text-center text-xs text-slate-400">${autoInfo.months.length ? autoInfo.months.join(', ')+'월' : '-'}</td>
-                        <td class="p-3 text-center">
-                            <button onclick="deleteStock(${index})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
+            // 업데이트 시간 표시
+            const now = new Date();
+            updatedEl.innerText = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} 갱신됨`;
+
+            // 종목 리스트 랜더링
+            loadingEl.style.display = 'none';
+            listEl.innerHTML = '';
+
+            const stocks = data.stocks;
+            
+            // 중복 키 제거하여 기본 리스트 생성
+            const uniqueTickers = Array.from(new Set(Object.values(stocks).map(s => s.ticker)));
+
+            uniqueTickers.forEach(ticker => {
+                const item = Object.values(stocks).find(s => s.ticker === ticker);
+                if (!item) return;
+
+                const name = Object.keys(stocks).find(key => stocks[key].ticker === ticker && key === key.toUpperCase()) || ticker;
+                const isKRW = item.currency === "KRW";
+                const priceFormatted = isKRW 
+                    ? `₩${Number(item.price).toLocaleString()}` 
+                    : `$${Number(item.price).toFixed(2)}`;
+
+                const divFormatted = isKRW 
+                    ? `₩${Number(item.divPerShare).toLocaleString()}` 
+                    : `$${Number(item.divPerShare).toFixed(2)}`;
+
+                // 배당 수익률 계산
+                const yieldPct = item.price > 0 ? ((item.divPerShare / item.price) * 100).toFixed(2) : "0.00";
+
+                // 배당월 태그
+                const monthsHtml = item.months && item.months.length > 0
+                    ? item.months.map(m => `<span class="badge-month">${m}월</span>`).join('')
+                    : '<span style="color:#666;">정보 없음</span>';
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <span class="stock-name">${name}</span>
+                            <span class="stock-ticker">(${item.ticker})</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.1rem; font-weight: bold;">${priceFormatted}</div>
+                        </div>
+                    </div>
+                    <div class="stock-info">
+                        <div>
+                            <span class="info-label">연간 주당 배당금</span>
+                        </div>
+                        <div class="info-value">${divFormatted}</div>
+
+                        <div>
+                            <span class="info-label">예상 배당수익률</span>
+                        </div>
+                        <div class="info-value" style="color: #34d399;">${yieldPct}%</div>
+
+                        <div>
+                            <span class="info-label">배당 지급월</span>
+                        </div>
+                        <div class="info-value">${monthsHtml}</div>
+                    </div>
                 `;
+                listEl.appendChild(card);
             });
 
-            document.getElementById('totalInvested').innerText = Math.round(totalInvested).toLocaleString() + ' 원/달러';
-            document.getElementById('totalAnnualDiv').innerText = Math.round(totalAnnualDiv).toLocaleString() + ' 원/달러';
-            document.getElementById('avgYield').innerText = totalInvested > 0 ? ((totalAnnualDiv / totalInvested) * 100).toFixed(2) + ' %' : '0.00 %';
-            localStorage.setItem('my_simple_portfolio', JSON.stringify(myPortfolio));
+        } catch (error) {
+            console.error(error);
+            loadingEl.innerText = "데이터 연동 실패: data.json 파일이 없거나 브라우저 오류입니다.";
+            loadingEl.style.color = "#ef4444";
         }
+    }
 
-        function openModal() { document.getElementById('stockModal').classList.remove('hidden'); document.getElementById('stockModal').classList.add('flex'); }
-        function closeModal() { document.getElementById('stockModal').classList.add('hidden'); document.getElementById('stockModal').classList.remove('flex'); }
+    // 앱 실행시 데이터 로드
+    window.onload = loadData;
+</script>
 
-        function saveStock(e) {
-            e.preventDefault();
-            const ticker = document.getElementById('inputTicker').value.trim();
-            const qty = parseFloat(document.getElementById('inputQty').value) || 0;
-            const avgPrice = parseFloat(document.getElementById('inputAvgPrice').value) || 0;
-
-            myPortfolio.push({ ticker, qty, avgPrice });
-            closeModal();
-            render();
-        }
-
-        function deleteStock(index) {
-            myPortfolio.splice(index, 1);
-            render();
-        }
-    </script>
 </body>
 </html>

@@ -1,13 +1,11 @@
 {
-  "exchangeRate": 1414.23,
-  "updatedAt": "2026-08-17 04:00:33",
+  "exchangeRate": 1414.71,
   "stocks": {
     "JEPI": {
       "ticker": "JEPI",
       "price": 58.02,
-      "divPerShare": 4.404,
+      "divPerShare": 0,
       "months": [
-        1,
         2,
         3,
         4,
@@ -22,10 +20,10 @@
       ],
       "currency": "USD"
     },
-    "jepi": {
-      "ticker": "JEPI",
-      "price": 58.02,
-      "divPerShare": 4.404,
+    "GPIX": {
+      "ticker": "GPIX",
+      "price": 56.61,
+      "divPerShare": 0,
       "months": [
         1,
         2,
@@ -45,29 +43,8 @@
     "JEPQ": {
       "ticker": "JEPQ",
       "price": 60.53,
-      "divPerShare": 8.46,
+      "divPerShare": 0,
       "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ],
-      "currency": "USD"
-    },
-    "jepq": {
-      "ticker": "JEPQ",
-      "price": 60.53,
-      "divPerShare": 8.46,
-      "months": [
-        1,
         2,
         3,
         4,
@@ -85,7 +62,7 @@
     "SCHD": {
       "ticker": "SCHD",
       "price": 34.52,
-      "divPerShare": 1.048,
+      "divPerShare": 0,
       "months": [
         3,
         6,
@@ -93,199 +70,11 @@
         12
       ],
       "currency": "USD"
-    },
-    "schd": {
-      "ticker": "SCHD",
-      "price": 34.52,
-      "divPerShare": 1.048,
-      "months": [
-        3,
-        6,
-        9,
-        12
-      ],
-      "currency": "USD"
-    },
-    "O": {
-      "ticker": "O",
-      "price": 62.74,
-      "divPerShare": 3.252,
-      "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ],
-      "currency": "USD"
-    },
-    "o": {
-      "ticker": "O",
-      "price": 62.74,
-      "divPerShare": 3.252,
-      "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ],
-      "currency": "USD"
-    },
-    "GPIX": {
-      "ticker": "GPIX",
-      "price": 56.61,
-      "divPerShare": 4.704,
-      "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ],
-      "currency": "USD"
-    },
-    "gpix": {
-      "ticker": "GPIX",
-      "price": 56.61,
-      "divPerShare": 4.704,
-      "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ],
-      "currency": "USD"
-    },
-    "SK하이닉스": {
-      "ticker": "000660.KS",
-      "price": 1645000.0,
-      "divPerShare": 3000.0,
-      "months": [
-        2,
-        5,
-        8,
-        11
-      ],
-      "currency": "KRW"
-    },
-    "000660.KS": {
-      "ticker": "000660.KS",
-      "price": 1645000.0,
-      "divPerShare": 3000.0,
-      "months": [
-        2,
-        5,
-        8,
-        11
-      ],
-      "currency": "KRW"
-    },
-    "sk하이닉스": {
-      "ticker": "000660.KS",
-      "price": 1645000.0,
-      "divPerShare": 3000.0,
-      "months": [
-        2,
-        5,
-        8,
-        11
-      ],
-      "currency": "KRW"
-    },
-    "현대차2우B": {
-      "ticker": "005387.KS",
-      "price": 213000.0,
-      "divPerShare": 10100.0,
-      "months": [
-        2,
-        5,
-        8,
-        11
-      ],
-      "currency": "KRW"
-    },
-    "005387.KS": {
-      "ticker": "005387.KS",
-      "price": 213000.0,
-      "divPerShare": 10100.0,
-      "months": [
-        2,
-        5,
-        8,
-        11
-      ],
-      "currency": "KRW"
-    },
-    "현대차2우b": {
-      "ticker": "005387.KS",
-      "price": 213000.0,
-      "divPerShare": 10100.0,
-      "months": [
-        2,
-        5,
-        8,
-        11
-      ],
-      "currency": "KRW"
-    },
-    "삼성전자": {
-      "ticker": "005930.KS",
-      "price": 274500.0,
-      "divPerShare": 1682.0,
-      "months": [
-        3,
-        6,
-        9,
-        12
-      ],
-      "currency": "KRW"
     },
     "005930.KS": {
       "ticker": "005930.KS",
       "price": 274500.0,
-      "divPerShare": 1682.0,
-      "months": [
-        3,
-        6,
-        9,
-        12
-      ],
-      "currency": "KRW"
-    },
-    "삼성전자우": {
-      "ticker": "005935.KS",
-      "price": 195600.0,
-      "divPerShare": 1683.0,
+      "divPerShare": 1496.0,
       "months": [
         3,
         6,
@@ -297,7 +86,7 @@
     "005935.KS": {
       "ticker": "005935.KS",
       "price": 195600.0,
-      "divPerShare": 1683.0,
+      "divPerShare": 1496.0,
       "months": [
         3,
         6,
@@ -306,83 +95,17 @@
       ],
       "currency": "KRW"
     },
-    "삼성SDI": {
-      "ticker": "006400.KS",
-      "price": 516000.0,
-      "divPerShare": 0,
-      "months": [],
-      "currency": "KRW"
-    },
-    "006400.KS": {
-      "ticker": "006400.KS",
-      "price": 516000.0,
-      "divPerShare": 0,
-      "months": [],
-      "currency": "KRW"
-    },
-    "삼성sdi": {
-      "ticker": "006400.KS",
-      "price": 516000.0,
-      "divPerShare": 0,
-      "months": [],
-      "currency": "KRW"
-    },
-    "두산에너빌리티": {
-      "ticker": "034020.KS",
-      "price": 82600.0,
-      "divPerShare": 0,
-      "months": [],
-      "currency": "KRW"
-    },
-    "034020.KS": {
-      "ticker": "034020.KS",
-      "price": 82600.0,
-      "divPerShare": 0,
-      "months": [],
-      "currency": "KRW"
-    },
-    "TIME 미국나스닥100액티브": {
-      "ticker": "426030.KS",
-      "price": 48620.0,
-      "divPerShare": 30.0,
+    "000660.KS": {
+      "ticker": "000660.KS",
+      "price": 1645000.0,
+      "divPerShare": 1500.0,
       "months": [
-        12
-      ],
-      "currency": "KRW"
-    },
-    "426030.KS": {
-      "ticker": "426030.KS",
-      "price": 48620.0,
-      "divPerShare": 30.0,
-      "months": [
-        12
-      ],
-      "currency": "KRW"
-    },
-    "time 미국나스닥100액티브": {
-      "ticker": "426030.KS",
-      "price": 48620.0,
-      "divPerShare": 30.0,
-      "months": [
-        12
-      ],
-      "currency": "KRW"
-    },
-    "TIGER 배당커버드콜액티브": {
-      "ticker": "472150.KS",
-      "price": 20975.0,
-      "divPerShare": 4500.0,
-      "months": [
-        1,
         2,
         3,
-        4,
         5,
         6,
-        7,
         8,
         9,
-        10,
         11,
         12
       ],
@@ -391,27 +114,7 @@
     "472150.KS": {
       "ticker": "472150.KS",
       "price": 20975.0,
-      "divPerShare": 4500.0,
-      "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ],
-      "currency": "KRW"
-    },
-    "tiger 배당커버드콜액티브": {
-      "ticker": "472150.KS",
-      "price": 20975.0,
-      "divPerShare": 4500.0,
+      "divPerShare": 0,
       "months": [
         1,
         2,

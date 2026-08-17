@@ -3,73 +3,73 @@
   "stocks": {
     "005930": {
       "price": 274500.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1444.0,
       "months": [
-        4,
         5,
         8,
-        11
+        11,
+        4
       ],
       "currency": "KRW"
     },
     "005930.KS": {
       "price": 274500.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1444.0,
       "months": [
-        4,
         5,
         8,
-        11
+        11,
+        4
       ],
       "currency": "KRW"
     },
     "005935": {
       "price": 195600.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1445.0,
       "months": [
-        4,
         5,
         8,
-        11
+        11,
+        4
       ],
       "currency": "KRW"
     },
     "005935.KS": {
       "price": 195600.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1445.0,
       "months": [
-        4,
         5,
         8,
-        11
+        11,
+        4
       ],
       "currency": "KRW"
     },
     "000660": {
       "price": 1645000.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1200.0,
       "months": [
-        4,
         5,
         8,
-        11
+        11,
+        4
       ],
       "currency": "KRW"
     },
     "000660.KS": {
       "price": 1645000.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1200.0,
       "months": [
-        4,
         5,
         8,
-        11
+        11,
+        4
       ],
       "currency": "KRW"
     },
     "006400": {
       "price": 516000.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1000.0,
       "months": [
         4
       ],
@@ -77,7 +77,7 @@
     },
     "006400.KS": {
       "price": 516000.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1000.0,
       "months": [
         4
       ],
@@ -85,7 +85,7 @@
     },
     "005387": {
       "price": 213000.0,
-      "divPerShare": 0.0,
+      "divPerShare": 11500.0,
       "months": [
         4
       ],
@@ -93,7 +93,7 @@
     },
     "005387.KS": {
       "price": 213000.0,
-      "divPerShare": 0.0,
+      "divPerShare": 11500.0,
       "months": [
         4
       ],
@@ -117,7 +117,7 @@
     },
     "472150": {
       "price": 20975.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1040.0,
       "months": [
         1,
         2,
@@ -136,7 +136,7 @@
     },
     "472150.KS": {
       "price": 20975.0,
-      "divPerShare": 0.0,
+      "divPerShare": 1040.0,
       "months": [
         1,
         2,

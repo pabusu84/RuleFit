@@ -1,0 +1,33 @@
+name: Update Dividend Data
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 매일 00:00 UTC 자동 실행
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance
+
+      - name: Fetch Data
+        run: |
+          python collect.py
+
+      - name: Commit & Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "Update dividend data" || exit 0
+          git push

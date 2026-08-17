@@ -218,9 +218,10 @@
     let marketData = { stocks: {}, exchangeRate: 1350 };
     
     let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
-        { name: "Jepq", qty: 373, price: 57.08 },
+        { name: "JEPQ", qty: 373, price: 57.08 },
         { name: "삼성전자", qty: 55, price: 269454 },
-        { name: "삼성전자우", qty: 400, price: 188396 }
+        { name: "삼성전자우", qty: 400, price: 188396 },
+        { name: "현대차2우B", qty: 60, price: 248000 }
     ];
 
     async function init() {
@@ -235,22 +236,32 @@
         render();
     }
 
+    // 이름 비교용 문자열 정규화 (공백 제거, 대문자 변환)
+    function cleanStr(str) {
+        return (str || '').toString().replace(/\s+/g, '').toUpperCase();
+    }
+
     function findLiveData(name) {
         if (!marketData.stocks) return {};
         
-        const raw = name.trim();
-        const upper = raw.toUpperCase();
-        const lower = raw.toLowerCase();
+        const target = cleanStr(name);
 
-        // 대소문자 및 다양한 키 검색
-        let found = marketData.stocks[raw] || marketData.stocks[upper] || marketData.stocks[lower];
-        
-        // 못 찾았을 경우 티커 매칭 시도 (.KS 대소문자 호환)
-        if (!found) {
-            const values = Object.values(marketData.stocks);
-            found = values.find(s => s.ticker === upper || s.ticker.toUpperCase() === upper);
+        // 1. 키 이름 비교
+        for (let key in marketData.stocks) {
+            if (cleanStr(key) === target) {
+                return marketData.stocks[key];
+            }
         }
-        return found || {};
+
+        // 2. ticker 값 비교
+        for (let key in marketData.stocks) {
+            const item = marketData.stocks[key];
+            if (item.ticker && cleanStr(item.ticker) === target) {
+                return item;
+            }
+        }
+
+        return {};
     }
 
     function render() {
@@ -268,7 +279,6 @@
             const divPerShare = liveData.divPerShare || 0;
             const months = (liveData.months && liveData.months.length > 0) ? liveData.months.join(',') + '월' : '-';
             
-            // 통화 판단 (currency 정보 혹은 평단가 기준)
             const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
 
             const investAmount = item.qty * item.price;

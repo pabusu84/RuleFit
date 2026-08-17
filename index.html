@@ -114,7 +114,6 @@
             font-size: 1.1rem;
         }
 
-        /* 모달 스타일 */
         .modal {
             display: none;
             position: fixed;
@@ -197,18 +196,15 @@
                     <th>관리</th>
                 </tr>
             </thead>
-            <tbody id="portfolio-body">
-                <!-- 종목 노출 영역 -->
-            </tbody>
+            <tbody id="portfolio-body"></tbody>
         </table>
     </div>
 </div>
 
-<!-- 종목 추가 모달 -->
 <div class="modal" id="addModal">
     <div class="modal-content">
         <h3>종목 추가</h3>
-        <input type="text" id="input-name" placeholder="종목명/티커 (예: Jepq, 삼성전자)">
+        <input type="text" id="input-name" placeholder="종목명/티커 (예: JEPQ, 삼성전자)">
         <input type="number" id="input-qty" placeholder="수량 (예: 10)">
         <input type="number" id="input-price" placeholder="평단가 (원/달러)">
         <div class="modal-btns">
@@ -221,15 +217,14 @@
 <script>
     let marketData = { stocks: {}, exchangeRate: 1350 };
     
-    // 로컬스토리지 저장 포트폴리오
     let myPortfolio = JSON.parse(localStorage.getItem('myPortfolio')) || [
         { name: "Jepq", qty: 373, price: 57.08 },
-        { name: "삼성전자", qty: 55, price: 269454 }
+        { name: "삼성전자", qty: 55, price: 269454 },
+        { name: "삼성전자우", qty: 400, price: 188396 }
     ];
 
     async function init() {
         try {
-            // 캐시 방지 적용하여 data.json 로드
             const res = await fetch('./data.json?t=' + new Date().getTime());
             if (res.ok) {
                 marketData = await res.json();
@@ -238,6 +233,24 @@
             console.error("data.json 로드 오류", e);
         }
         render();
+    }
+
+    function findLiveData(name) {
+        if (!marketData.stocks) return {};
+        
+        const raw = name.trim();
+        const upper = raw.toUpperCase();
+        const lower = raw.toLowerCase();
+
+        // 대소문자 및 다양한 키 검색
+        let found = marketData.stocks[raw] || marketData.stocks[upper] || marketData.stocks[lower];
+        
+        // 못 찾았을 경우 티커 매칭 시도 (.KS 대소문자 호환)
+        if (!found) {
+            const values = Object.values(marketData.stocks);
+            found = values.find(s => s.ticker === upper || s.ticker.toUpperCase() === upper);
+        }
+        return found || {};
     }
 
     function render() {
@@ -249,18 +262,15 @@
         const rate = marketData.exchangeRate || 1350;
 
         myPortfolio.forEach((item, index) => {
-            // marketData 조회 (소문자/대문자/한글 키 대응)
-            const stockKey = item.name.trim();
-            const liveData = marketData.stocks[stockKey] || 
-                             marketData.stocks[stockKey.toLowerCase()] || 
-                             marketData.stocks[stockKey.toUpperCase()] || {};
+            const liveData = findLiveData(item.name);
 
             const curPrice = liveData.price || 0;
             const divPerShare = liveData.divPerShare || 0;
             const months = (liveData.months && liveData.months.length > 0) ? liveData.months.join(',') + '월' : '-';
+            
+            // 통화 판단 (currency 정보 혹은 평단가 기준)
             const isUSD = liveData.currency === "USD" || (!liveData.currency && item.price < 1000);
 
-            // 투자금 및 배당금 계산
             const investAmount = item.qty * item.price;
             const dividendAmount = item.qty * divPerShare;
 
@@ -285,7 +295,6 @@
             tbody.appendChild(tr);
         });
 
-        // 요약 정보 업데이트
         document.getElementById('total-invest').innerText = Math.round(totalInvestKRW).toLocaleString() + ' 원';
         document.getElementById('total-dividend').innerText = Math.round(totalDividendKRW).toLocaleString() + ' 원';
         

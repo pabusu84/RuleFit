@@ -6,82 +6,557 @@
     <title>RuleFit 배당 포트폴리오</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #f8f9fa; color: #212529; padding: 16px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .header h1 { font-size: 1.3rem; font-weight: 700; }
-        .add-btn { background: #0d6efd; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #171e2e;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border-color: #374151;
+            
+            --isa-color: #60a5fa;
+            --irp-color: #c084fc;
+            --pension-color: #fbbf24;
+            --general-color: #9ca3af;
+        }
 
-        .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-        .card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .card .label { font-size: 0.8rem; color: #6c757d; margin-bottom: 6px; font-weight: 500; }
-        .card .value { font-size: 1.15rem; font-weight: 700; color: #111; word-break: break-all; }
-        .card .value.blue { color: #0d6efd; }
-        .card .value.green { color: #198754; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+        }
 
-        .chart-card, .list-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; }
-        .list-card h2, .chart-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: #333; }
-        
-        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f3f5; }
-        .stock-item:last-child { border-bottom: none; }
-        
-        .stock-info { display: flex; flex-direction: column; gap: 4px; }
-        .stock-name-row { display: flex; align-items: center; gap: 6px; }
-        .stock-name { font-weight: 700; font-size: 0.95rem; }
-        
-        .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
-        .badge.isa { background-color: #e7f5ff; color: #1c7ed6; }
-        .badge.irp { background-color: #f3d9fa; color: #ae3ec9; }
-        .badge.pension { background-color: #fff3bf; color: #f59f00; }
-        .badge.general { background-color: #f1f3f5; color: #495057; }
-        
-        .stock-sub { font-size: 0.8rem; color: #868e96; }
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            padding: 20px 16px;
+            line-height: 1.5;
+        }
 
-        .stock-yields { text-align: right; }
-        .yield-target { font-size: 0.9rem; font-weight: 700; color: #d6336c; }
-        .yield-official { font-size: 0.75rem; color: #adb5bd; }
-        .div-amount { font-size: 0.85rem; font-weight: 600; color: #212529; margin-top: 2px; }
+        .container { 
+            max-width: 680px; 
+            margin: 0 auto; 
+        }
+        
+        /* 헤더 영역 */
+        .header { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            margin-bottom: 24px; 
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .header h1 { 
+            font-size: 1.5rem; 
+            font-weight: 800; 
+            background: linear-gradient(to right, #60a5fa, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .add-btn { 
+            background: var(--primary); 
+            color: #fff; 
+            border: none; 
+            padding: 10px 16px; 
+            border-radius: 10px; 
+            font-weight: 700; 
+            font-size: 0.9rem;
+            cursor: pointer; 
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+        }
+        .add-btn:hover { 
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+        .mode-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+        .mode-badge.server {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
 
-        .btn-sm { border: none; background: none; font-size: 0.8rem; cursor: pointer; color: #868e96; margin-right: 4px; }
-        .btn-sm:hover { text-decoration: underline; }
-        .btn-delete { color: #e03131; }
+        /* 대시보드 카드 그리드 */
+        .card-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 16px; 
+            margin-bottom: 24px; 
+        }
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 16px; 
+            padding: 18px; 
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .card .label { 
+            font-size: 0.8rem; 
+            color: var(--text-muted); 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            letter-spacing: 0.05em;
+        }
+        .card .value { 
+            font-size: 1.3rem; 
+            font-weight: 800; 
+            color: var(--text-main); 
+            word-break: break-all; 
+        }
+        .card .value.blue { color: #60a5fa; }
+        .card .value.green { color: #10b981; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 20px; border-radius: 14px; width: 90%; max-width: 400px; }
-        .modal-content h3 { margin-bottom: 16px; font-size: 1.1rem; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.8rem; color: #6c757d; margin-bottom: 4px; }
-        .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; }
-        .modal-btn-group { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-        .btn-cancel { background: #e9ecef; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
-        .btn-save { background: #0d6efd; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+        /* 배당 목표 달성도 게이지 */
+        .goal-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .goal-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .goal-percent {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--warning);
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #1f2937;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            border: 1px solid #374151;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #fbbf24, #f59e0b);
+            border-radius: 6px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .goal-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* 룰핏 원칙 검사 (RuleFit Check) */
+        .rule-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        .rule-card h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #fbbf24;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .rule-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .rule-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .rule-status-icon {
+            font-size: 1.1rem;
+            line-height: 1;
+            margin-top: 2px;
+        }
+        .rule-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .rule-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        .rule-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .rule-item.pass {
+            border-color: rgba(16, 185, 129, 0.2);
+            background-color: rgba(16, 185, 129, 0.02);
+        }
+        .rule-item.pass .rule-name { color: #34d399; }
+        .rule-item.fail {
+            border-color: rgba(239, 68, 68, 0.2);
+            background-color: rgba(239, 68, 68, 0.02);
+        }
+        .rule-item.fail .rule-name { color: #f87171; }
+
+        /* 월별 차트 카드 */
+        .chart-card, .list-card, .accordion-card { 
+            background: var(--card-bg); 
+            border-radius: 16px; 
+            padding: 20px; 
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            margin-bottom: 24px; 
+        }
+        .chart-card h2, .list-card h2, .accordion-card h2 { 
+            font-size: 1rem; 
+            font-weight: 700; 
+            margin-bottom: 16px; 
+            color: var(--text-main); 
+        }
+
+        /* 아코디언 월별 배당 상세 */
+        .accordion-item {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+        .accordion-header {
+            padding: 12px 16px;
+            background-color: rgba(255, 255, 255, 0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        .accordion-header:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .accordion-header span.amount {
+            color: #60a5fa;
+        }
+        .accordion-content {
+            display: none;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            background-color: rgba(0, 0, 0, 0.2);
+            font-size: 0.85rem;
+        }
+        .accordion-content-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+        .accordion-content-row:last-child {
+            border-bottom: none;
+        }
+        .accordion-content-row span.stock {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* 종목 리스트 */
+        .stock-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 16px 0; 
+            border-bottom: 1px solid var(--border-color); 
+        }
+        .stock-item:last-child { 
+            border-bottom: none; 
+        }
+        .stock-info { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+        }
+        .stock-name-row { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        .stock-name { 
+            font-weight: 700; 
+            font-size: 1rem; 
+            color: var(--text-main);
+        }
+        .badge { 
+            font-size: 0.65rem; 
+            padding: 3px 8px; 
+            border-radius: 6px; 
+            font-weight: 700; 
+            text-transform: uppercase;
+        }
+        .badge.isa { background-color: rgba(96, 165, 250, 0.15); color: var(--isa-color); border: 1px solid rgba(96, 165, 250, 0.3); }
+        .badge.irp { background-color: rgba(192, 132, 252, 0.15); color: var(--irp-color); border: 1px solid rgba(192, 132, 252, 0.3); }
+        .badge.pension { background-color: rgba(251, 191, 36, 0.15); color: var(--pension-color); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .badge.general { background-color: rgba(156, 163, 175, 0.15); color: var(--general-color); border: 1px solid rgba(156, 163, 175, 0.3); }
+        
+        .stock-sub { 
+            font-size: 0.8rem; 
+            color: var(--text-muted); 
+        }
+        .stock-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .btn-sm { 
+            border: 1px solid var(--border-color); 
+            background: rgba(255, 255, 255, 0.05); 
+            font-size: 0.75rem; 
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer; 
+            color: var(--text-muted); 
+            transition: all 0.2s;
+        }
+        .btn-sm:hover { 
+            background: rgba(255, 255, 255, 0.1); 
+            color: var(--text-main);
+        }
+        .btn-delete { 
+            color: var(--danger); 
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+        }
+
+        .stock-yields { 
+            text-align: right; 
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .yield-target { 
+            font-size: 0.95rem; 
+            font-weight: 800; 
+            color: #f472b6; 
+        }
+        .yield-official { 
+            font-size: 0.75rem; 
+            color: var(--text-muted); 
+        }
+        .div-amount { 
+            font-size: 0.85rem; 
+            font-weight: 700; 
+            color: var(--text-main); 
+        }
+
+        /* 모달 윈도우 */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.7); 
+            backdrop-filter: blur(4px);
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+        }
+        .modal-content { 
+            background: var(--card-bg); 
+            padding: 24px; 
+            border-radius: 20px; 
+            width: 90%; 
+            max-width: 400px; 
+            border: 1px solid var(--border-color);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .modal-content h3 { 
+            margin-bottom: 20px; 
+            font-size: 1.2rem; 
+            font-weight: 800;
+        }
+        .form-group { 
+            margin-bottom: 16px; 
+        }
+        .form-group label { 
+            display: block; 
+            font-size: 0.75rem; 
+            color: var(--text-muted); 
+            margin-bottom: 6px; 
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .form-group input, .form-group select { 
+            width: 100%; 
+            padding: 10px 14px; 
+            background-color: #1f2937;
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            font-size: 0.9rem; 
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--primary);
+        }
+        .modal-btn-group { 
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 10px; 
+            margin-top: 24px; 
+        }
+        .btn-cancel { 
+            background: #374151; 
+            color: var(--text-main);
+            border: none; 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .btn-cancel:hover {
+            background: #4b5563;
+        }
+        .btn-save { 
+            background: var(--primary); 
+            color: #fff; 
+            border: none; 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .btn-save:hover {
+            background: var(--primary-hover);
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- 헤더 -->
         <div class="header">
-            <h1>📊 RuleFit 포트폴리오</h1>
-            <button class="add-btn" onclick="openModal()">+ 종목 추가</button>
+            <h1>🛡️ RuleFit Dividend</h1>
+            <div class="header-buttons">
+                <span id="appModeBadge" class="mode-badge">📡 로딩 중...</span>
+                <button class="add-btn" onclick="openModal()">+ 종목 추가</button>
+            </div>
         </div>
 
+        <!-- 대시보드 요약 -->
         <div class="card-grid">
-            <div class="card"><div class="label">총 평가금액</div><div class="value" id="totalEval">0원</div></div>
-            <div class="card"><div class="label">총 투자금액</div><div class="value" id="totalInvest">0원</div></div>
-            <div class="card"><div class="label">연간 실수령 배당금</div><div class="value blue" id="totalAnnualDiv">0원</div></div>
-            <div class="card"><div class="label">평균 배당수익률</div><div class="value green" id="totalYieldRate">0%</div></div>
+            <div class="card">
+                <div class="label">총 평가자산</div>
+                <div class="value" id="totalEval">0원</div>
+            </div>
+            <div class="card">
+                <div class="label">총 매입자산</div>
+                <div class="value" id="totalInvest">0원</div>
+            </div>
+            <div class="card">
+                <div class="label">연간 실수령 배당금</div>
+                <div class="value blue" id="totalAnnualDiv">0원</div>
+            </div>
+            <div class="card">
+                <div class="label">평균 배당수익률</div>
+                <div class="value green" id="totalYieldRate">0.00%</div>
+            </div>
         </div>
 
+        <!-- 목표 배당금 게이지 카드 -->
+        <div class="goal-card">
+            <div class="goal-header">
+                <span class="goal-title">🎯 월 배당금 달성 목표 (목표: 월 500만원)</span>
+                <span class="goal-percent" id="goalPercent">0.0%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="goalProgressBar"></div>
+            </div>
+            <div class="goal-details">
+                <span id="currentMonthlyDivText">현재: 월 0원</span>
+                <span id="remainingDivText">목표까지 월 5,000,000원 부족</span>
+            </div>
+        </div>
+
+        <!-- RuleFit 원칙 검사 (RuleFit Check) -->
+        <div class="rule-card">
+            <h2>⚖️ RuleFit 원칙 준수 여부 검사</h2>
+            <div class="rule-list" id="ruleList">
+                <!-- 원칙 검사 결과 동적 추가 -->
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">종목 정보 분석 중...</div>
+            </div>
+        </div>
+
+        <!-- 월별 배당 차트 -->
         <div class="chart-card">
-            <h2>📅 월별 예상 배당금 (종목별 주기 반영)</h2>
+            <h2>📅 월별 예상 배당금 분포 (주기 반영)</h2>
             <canvas id="monthlyChart" height="180"></canvas>
         </div>
 
+        <!-- 월별 상세 배당 아코디언 -->
+        <div class="accordion-card">
+            <h2>🔍 월별 상세 수령액 & 종목 내역</h2>
+            <div id="monthlyAccordion">
+                <!-- 아코디언 항목 동적 로드 -->
+            </div>
+        </div>
+
+        <!-- 보유 종목 리스트 -->
         <div class="list-card">
-            <h2>보유 종목 리스트</h2>
+            <h2>보유 종목 목록</h2>
             <div id="stockList">
-                <div style="text-align: center; color: #868e96; padding: 20px;">데이터를 불러오는 중...</div>
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">데이터를 로딩하고 있습니다...</div>
             </div>
         </div>
     </div>
@@ -91,9 +566,16 @@
         <div class="modal-content">
             <h3 id="modalTitle">종목 추가</h3>
             <input type="hidden" id="editId">
-            <div class="form-group"><label>종목명</label><input type="text" id="inputName"></div>
-            <div class="form-group"><label>종목코드</label><input type="text" id="inputCode"></div>
-            <div class="form-group"><label>계좌 유형</label>
+            <div class="form-group">
+                <label>종목명</label>
+                <input type="text" id="inputName" placeholder="예: 삼성전자우, JEPQ">
+            </div>
+            <div class="form-group">
+                <label>종목코드 / 티커</label>
+                <input type="text" id="inputCode" placeholder="예: 005935.KS, JEPQ, AAPL">
+            </div>
+            <div class="form-group">
+                <label>계좌 유형</label>
                 <select id="inputAccount">
                     <option value="일반">일반</option>
                     <option value="ISA">ISA</option>
@@ -101,8 +583,39 @@
                     <option value="연금저축">연금저축</option>
                 </select>
             </div>
-            <div class="form-group"><label>보유 수량</label><input type="number" id="inputQty"></div>
-            <div class="form-group"><label>매수 단가</label><input type="number" id="inputAvg"></div>
+            <div class="form-group">
+                <label>보유 수량</label>
+                <input type="number" id="inputQty" placeholder="보유 수량을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label>매수 단가 (평균가)</label>
+                <input type="number" id="inputAvg" step="any" placeholder="평단가를 입력하세요">
+            </div>
+            
+            <!-- 수동 입력 체크박스 및 입력 필드 -->
+            <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <input type="checkbox" id="inputManual" style="width: auto;" onchange="toggleManualFields()">
+                <label for="inputManual" style="margin-bottom: 0; cursor: pointer; font-size: 0.75rem; font-weight: 700;">주가/배당금 직접 입력 (신규 종목용)</label>
+            </div>
+            
+            <div id="manualFields" style="display: none; border: 1px dashed var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px; background-color: rgba(0,0,0,0.1);">
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>통화 구분</label>
+                    <select id="inputCurrency">
+                        <option value="KRW">원화 (KRW)</option>
+                        <option value="USD">달러 (USD)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>현재가</label>
+                    <input type="number" id="inputPrice" step="any" placeholder="현재 주가를 입력하세요">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>주당 연 배당금</label>
+                    <input type="number" id="inputDiv" step="any" placeholder="주당 연 배당금을 입력하세요">
+                </div>
+            </div>
+
             <div class="modal-btn-group">
                 <button class="btn-cancel" onclick="closeModal()">취소</button>
                 <button class="btn-save" onclick="saveStock()">저장</button>
@@ -113,33 +626,285 @@
     <script>
         let monthlyChartInstance = null;
         let globalHoldings = [];
+        let isLocalServerMode = false;
 
+        // 월별 배당 지급 월 정의 (야후나 네이버에서 수집 실패 시 참고용 백업 스케줄)
         const DIV_SCHEDULES = {
-            "GPIX": [1,2,3,4,5,6,7,8,9,10,11,12], "JEPQ": [1,2,3,4,5,6,7,8,9,10,11,12],
-            "472150.KS": [1,2,3,4,5,6,7,8,9,10,11,12], "486290.KS": [1,2,3,4,5,6,7,8,9,10,11,12],
-            "005930.KS": [4, 5, 8, 11], "005935.KS": [4, 5, 8, 11],
-            "000660.KS": [4, 5, 8, 11], "005387.KS": [4, 5, 8, 11], "AAPL": [2, 5, 8, 11]
+            "GPIX": [1,2,3,4,5,6,7,8,9,10,11,12], 
+            "JEPQ": [1,2,3,4,5,6,7,8,9,10,11,12],
+            "472150.KS": [1,2,3,4,5,6,7,8,9,10,11,12], 
+            "486290.KS": [1,2,3,4,5,6,7,8,9,10,11,12],
+            "005930.KS": [4, 5, 8, 11], 
+            "005935.KS": [4, 5, 8, 11],
+            "000660.KS": [4, 5, 8, 11], 
+            "005387.KS": [4, 5, 8, 11], 
+            "AAPL": [2, 5, 8, 11]
         };
 
+        // 로컬 오프라인 모드 시 사용될 백업 가격 및 배당 데이터 (원화 기준 자동 환산 처리용)
+        const BACKUP_STOCKS = {
+            "005930.KS": { name: "삼성전자", price: 60000, divPerShare: 1444, officialYield: "2.4%", targetYield: "2.4%", months: [4, 5, 8, 11], currency: "KRW" },
+            "005935.KS": { name: "삼성전자우", price: 50000, divPerShare: 1445, officialYield: "2.9%", targetYield: "2.9%", months: [4, 5, 8, 11], currency: "KRW" },
+            "000660.KS": { name: "SK하이닉스", price: 180000, divPerShare: 1500, officialYield: "0.8%", targetYield: "0.8%", months: [4, 5, 8, 11], currency: "KRW" },
+            "006400.KS": { name: "삼성SDI", price: 350000, divPerShare: 1000, officialYield: "0.3%", targetYield: "0.3%", months: [4], currency: "KRW" },
+            "005387.KS": { name: "현대차2우B", price: 150000, divPerShare: 11500, officialYield: "7.6%", targetYield: "7.6%", months: [4, 5, 8, 11], currency: "KRW" },
+            "034020.KS": { name: "두산에너빌리티", price: 20000, divPerShare: 0, officialYield: "0.0%", targetYield: "0.0%", months: [4], currency: "KRW" },
+            "472150.KS": { name: "TIGER 배당커버드콜액티브", price: 10000, divPerShare: 840, officialYield: "4.2%", targetYield: "8.4%", months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
+            "486290.KS": { name: "TIGER 미국나스닥100타겟데일리커버드콜", price: 11080, divPerShare: 1200, officialYield: "2.1%", targetYield: "10.8%", months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
+            "0177N0.KS": { name: "KODEX 삼성전자SK하이닉스채권혼합50", price: 14145, divPerShare: 350, officialYield: "2.5%", targetYield: "2.5%", months: [4, 5, 8, 11], currency: "KRW" },
+            "453850.KS": { name: "TIME 미국나스닥100액티브", price: 13000, divPerShare: 120, officialYield: "1.0%", targetYield: "1.0%", months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "KRW" },
+            "GPIX": { name: "GPIX", price: 54.96, divPerShare: 5.4, officialYield: "9.8%", targetYield: "9.8%", months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "USD" },
+            "JEPQ": { name: "JEPQ", price: 57.09, divPerShare: 5.04, officialYield: "8.8%", targetYield: "8.8%", months: [1,2,3,4,5,6,7,8,9,10,11,12], currency: "USD" },
+            "AAPL": { name: "AAPL", price: 220.0, divPerShare: 1.0, officialYield: "0.5%", targetYield: "0.5%", months: [2, 5, 8, 11], currency: "USD" }
+        };
+
+        // KRW 종목: avg는 원화(KRW) 기준. USD 종목: avg는 달러($) 기준.
+        const DEFAULT_HOLDINGS = [
+            { name: "삼성전자우", code: "005935.KS", qty: 400, avg: 188396, account: "일반" },
+            { name: "SK하이닉스", code: "000660.KS", qty: 30, avg: 2162833, account: "일반" },
+            { name: "JEPQ", code: "JEPQ", qty: 373, avg: 57.09, account: "일반" },
+            { name: "GPIX", code: "GPIX", qty: 287, avg: 54.96, account: "일반" },
+            { name: "TIGER 배당커버드콜액티브", code: "472150.KS", qty: 215, avg: 95108, account: "일반" },
+            { name: "현대차2우B", code: "005387.KS", qty: 60, avg: 248000, account: "일반" },
+            { name: "삼성전자", code: "005930.KS", qty: 55, avg: 269454, account: "일반" },
+            { name: "두산에너빌리티", code: "034020.KS", qty: 68, avg: 95108, account: "일반" },
+            { name: "삼성SDI", code: "006400.KS", qty: 12, avg: 510791, account: "일반" },
+            { name: "AAPL", code: "AAPL", qty: 10, avg: 117.0, account: "일반" },
+            { name: "TIGER 배당커버드콜액티브", code: "472150.KS", qty: 243, avg: 29545, account: "ISA" },
+            { name: "TIME 미국나스닥100액티브", code: "453850.KS", qty: 30, avg: 13000, account: "ISA" },
+            { name: "TIGER 배당커버드콜액티브", code: "472150.KS", qty: 250, avg: 10000, account: "IRP" },
+            { name: "KODEX 삼성전자SK하이닉스채권혼합50", code: "0177N0.KS", qty: 100, avg: 14145, account: "IRP" },
+            { name: "TIGER 미국나스닥100타겟데일리커버드콜", code: "486290.KS", qty: 100, avg: 11080, account: "연금저축" }
+        ];
+
+        // 500만원 목표 상수 설정
+        const MONTHLY_DIV_GOAL = 5000000;
+
+        // 로컬스토리지 관련 헬퍼 함수
+        function getLocalStorageHoldings() {
+            const data = localStorage.getItem('rulefit_holdings');
+            if (data) return JSON.parse(data);
+            localStorage.setItem('rulefit_holdings', JSON.stringify(DEFAULT_HOLDINGS));
+            return DEFAULT_HOLDINGS;
+        }
+
+        function setLocalStorageHoldings(holdings) {
+            localStorage.setItem('rulefit_holdings', JSON.stringify(holdings));
+        }
+
+        // 앱 연결 초기 감지 및 데이터 로드
         async function loadPortfolio() {
             try {
-                const response = await fetch('https://rulefit-mcp.onrender.com/tools/get-portfolio');
+                // 1. 로컬 API 서버 감지 시도 (3초 타임아웃)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch('http://localhost:3000/tools/get-portfolio', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
                 const data = await response.json();
-                if (!data.success) throw new Error("데이터 수신 오류");
+                if (data.success) {
+                    isLocalServerMode = true;
+                    document.getElementById('appModeBadge').innerText = "🔌 로컬 서버 모드";
+                    document.getElementById('appModeBadge').className = "mode-badge server";
+                    
+                    globalHoldings = data.holdings;
+                    renderDashboard(data.summary, data.holdings);
+                    return;
+                }
+            } catch (error) {
+                console.log("로컬 API 서버 연결 불가능. 로컬스토리지 모드로 자동 전환합니다.");
+            }
 
-                globalHoldings = data.holdings;
+            isLocalServerMode = false;
+            document.getElementById('appModeBadge').innerText = "📡 로컬스토리지 모드";
+            document.getElementById('appModeBadge').className = "mode-badge";
+            
+            let collectedData = { exchangeRate: 1350.0, stocks: {} };
+            try {
+                const res = await fetch('./data.json');
+                collectedData = await res.json();
+            } catch (err) {
+                console.log("data.json 파일 직접 fetch 불가능 (오프라인 모드). 내장된 백업 정보를 사용합니다.");
+            }
 
-                document.getElementById('totalEval').innerText = data.summary.totalEvalKRW.toLocaleString() + '원';
-                document.getElementById('totalInvest').innerText = data.summary.totalInvestKRW.toLocaleString() + '원';
-                document.getElementById('totalAnnualDiv').innerText = data.summary.totalAnnualDivKRW.toLocaleString() + '원';
-                document.getElementById('totalYieldRate').innerText = data.summary.totalYieldRate;
+            const holdings = getLocalStorageHoldings();
+            globalHoldings = holdings;
+            
+            const summary = calculateSummary(holdings, collectedData);
+            
+            const calculatedList = holdings.map((item, idx) => {
+                const info = getLocalStockInfo(item, collectedData);
+                const isUSD = info.currency === 'USD';
+                const exchangeRate = collectedData.exchangeRate || 1350.0;
 
-                const listContainer = document.getElementById('stockList');
-                listContainer.innerHTML = data.holdings.map(stock => {
+                // 현재가: USD면 원화 환산
+                const priceKRW = isUSD ? Math.round(info.price * exchangeRate) : info.price;
+                const divKRW = isUSD ? (info.divPerShare * exchangeRate) : info.divPerShare;
+                // avg: USD 종목은 달러 기준이므로 환율 적용, KRW 종목은 그대로
+                const investKRW = isUSD ? (item.qty * item.avg * exchangeRate) : (item.qty * item.avg);
+                const evalKRW = item.qty * priceKRW;
+                
+                const isTaxFree = ['ISA', 'IRP', '연금저축'].includes(item.account);
+                const taxFactor = isTaxFree ? 1.0 : 0.846;
+                const annualDivKRW = item.qty * divKRW * taxFactor;
+
+                return {
+                    id: idx,
+                    name: item.name || info.name || item.code,
+                    code: item.code,
+                    account: item.account,
+                    qty: item.qty,
+                    avg: item.avg,
+                    isUSD: isUSD,
+                    exchangeRate: exchangeRate,
+                    price: priceKRW,
+                    officialYield: info.officialYield,
+                    targetYield: info.targetYield,
+                    annualDivKRW: Math.round(annualDivKRW),
+                    investKRW: Math.round(investKRW),
+                    evalKRW: Math.round(evalKRW),
+                    months: info.months,
+                    isManual: item.isManual,
+                    manualPrice: item.price,
+                    manualDivPerShare: item.divPerShare,
+                    manualCurrency: item.currency
+                };
+            });
+
+            renderDashboard(summary, calculatedList);
+        }
+
+        function getLocalStockInfo(item, collectedData) {
+            if (item.isManual) {
+                const price = Number(item.price) || 0;
+                const divPerShare = Number(item.divPerShare) || 0;
+                const currency = item.currency || 'KRW';
+                const calculatedYield = price > 0 ? ((divPerShare / price) * 100).toFixed(1) + '%' : '0.0%';
+                return {
+                    price,
+                    divPerShare,
+                    currency,
+                    months: item.months || [1,2,3,4,5,6,7,8,9,10,11,12],
+                    officialYield: calculatedYield,
+                    targetYield: calculatedYield
+                };
+            }
+
+            const code = item.code;
+            const rawCode = (code || "").toUpperCase();
+            const cleanCode = rawCode.replace('.KS', '').replace('.KQ', '');
+            
+            let price = 0;
+            let divPerShare = 0;
+            let currency = 'KRW';
+            let months = [];
+
+            const stockData = collectedData.stocks[rawCode] || collectedData.stocks[cleanCode];
+
+            if (stockData) {
+                price = stockData.price || 0;
+                divPerShare = stockData.divPerShare || 0;
+                currency = stockData.currency || 'KRW';
+                months = stockData.months || [];
+            } else {
+                const backup = BACKUP_STOCKS[rawCode] || BACKUP_STOCKS[cleanCode];
+                if (backup) {
+                    price = backup.price || 0;
+                    divPerShare = backup.divPerShare || 0;
+                    currency = backup.currency || 'KRW';
+                    months = backup.months || [];
+                }
+            }
+
+            let calculatedYield = price > 0 ? ((divPerShare / price) * 100).toFixed(1) + '%' : '0.0%';
+            let officialYield = calculatedYield;
+            let targetYield = calculatedYield;
+
+            const backup = BACKUP_STOCKS[rawCode] || BACKUP_STOCKS[cleanCode];
+            if (backup) {
+                if (backup.officialYield) officialYield = backup.officialYield;
+                if (backup.targetYield) targetYield = backup.targetYield;
+            }
+
+            return { price, divPerShare, currency, months: months.length > 0 ? months : [1,2,3,4,5,6,7,8,9,10,11,12], officialYield, targetYield };
+        }
+
+        function calculateSummary(holdings, collectedData) {
+            const exchangeRate = collectedData.exchangeRate || 1350.0;
+            let totalInvestKRW = 0;
+            let totalEvalKRW = 0;
+            let totalAnnualDivKRW = 0;
+
+            holdings.forEach(item => {
+                const info = getLocalStockInfo(item, collectedData);
+                const isUSD = info.currency === 'USD';
+
+                const priceKRW = isUSD ? Math.round(info.price * exchangeRate) : info.price;
+                const divKRW = isUSD ? (info.divPerShare * exchangeRate) : info.divPerShare;
+                // avg: USD면 달러 기준이므로 환율 적용
+                const investKRW = isUSD ? (item.qty * item.avg * exchangeRate) : (item.qty * item.avg);
+                const evalKRW = item.qty * priceKRW;
+                
+                const isTaxFree = ['ISA', 'IRP', '연금저축'].includes(item.account);
+                const taxFactor = isTaxFree ? 1.0 : 0.846;
+                const annualDivKRW = item.qty * divKRW * taxFactor;
+
+                totalInvestKRW += investKRW;
+                totalEvalKRW += evalKRW;
+                totalAnnualDivKRW += annualDivKRW;
+            });
+
+            const totalProfitKRW = totalEvalKRW - totalInvestKRW;
+            const totalReturnRate = totalInvestKRW > 0 ? ((totalProfitKRW / totalInvestKRW) * 100).toFixed(2) + '%' : '0.00%';
+            const totalYieldRate = totalInvestKRW > 0 ? ((totalAnnualDivKRW / totalInvestKRW) * 100).toFixed(2) + '%' : '0.00%';
+
+            return {
+                totalInvestKRW: Math.round(totalInvestKRW),
+                totalEvalKRW: Math.round(totalEvalKRW),
+                totalProfitKRW: Math.round(totalProfitKRW),
+                totalReturnRate,
+                totalAnnualDivKRW: Math.round(totalAnnualDivKRW),
+                totalYieldRate
+            };
+        }
+
+        function renderDashboard(summary, holdingsList) {
+            document.getElementById('totalEval').innerText = summary.totalEvalKRW.toLocaleString() + '원';
+            document.getElementById('totalInvest').innerText = summary.totalInvestKRW.toLocaleString() + '원';
+            document.getElementById('totalAnnualDiv').innerText = summary.totalAnnualDivKRW.toLocaleString() + '원';
+            document.getElementById('totalYieldRate').innerText = summary.totalYieldRate;
+
+            const monthlyDiv = Math.round(summary.totalAnnualDivKRW / 12);
+            document.getElementById('currentMonthlyDivText').innerText = `현재: 월 ${monthlyDiv.toLocaleString()}원`;
+            
+            const goalPercent = Math.min(((monthlyDiv / MONTHLY_DIV_GOAL) * 100), 100.0).toFixed(1);
+            document.getElementById('goalPercent').innerText = `${goalPercent}%`;
+            document.getElementById('goalProgressBar').style.width = `${goalPercent}%`;
+
+            const diff = MONTHLY_DIV_GOAL - monthlyDiv;
+            if (diff > 0) {
+                document.getElementById('remainingDivText').innerText = `목표까지 월 ${diff.toLocaleString()}원 추가 확보 필요`;
+            } else {
+                document.getElementById('remainingDivText').innerText = `🎉 배당 목표 초과 달성! (초과액: 월 ${Math.abs(diff).toLocaleString()}원)`;
+                document.getElementById('remainingDivText').style.color = '#34d399';
+            }
+
+            runRuleFitChecks(summary, holdingsList);
+
+            const listContainer = document.getElementById('stockList');
+            if (holdingsList.length === 0) {
+                listContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">등록된 종목이 없습니다. 오른쪽 위의 종목 추가 버튼을 눌러보세요!</div>';
+            } else {
+                listContainer.innerHTML = holdingsList.map(stock => {
                     let badgeClass = 'general';
                     if (stock.account === 'ISA') badgeClass = 'isa';
                     else if (stock.account === 'IRP') badgeClass = 'irp';
                     else if (stock.account === '연금저축') badgeClass = 'pension';
+
+                    const profit = stock.evalKRW - stock.investKRW;
+                    const profitRate = stock.investKRW > 0 ? ((profit / stock.investKRW) * 100).toFixed(2) : '0.00';
+                    const profitColor = profit > 0 ? '#10b981' : (profit < 0 ? '#ef4444' : 'inherit');
 
                     return `
                         <div class="stock-item">
@@ -148,34 +913,129 @@
                                     <span class="stock-name">${stock.name}</span>
                                     <span class="badge ${badgeClass}">${stock.account}</span>
                                 </div>
-                                <div class="stock-sub">${stock.qty.toLocaleString()}주 · 평균 ${stock.avg.toLocaleString()}원</div>
-                                <div style="margin-top: 4px;">
+                                <div class="stock-sub">${stock.qty.toLocaleString()}주 · 평균단가 ${stock.isUSD ? '$' + stock.avg.toFixed(2) + ' (약 ' + Math.round(stock.avg * (stock.exchangeRate||1350)).toLocaleString() + '원)' : Math.round(stock.avg).toLocaleString() + '원'}</div>
+                                <div class="stock-sub" style="color: ${profitColor}; font-weight: 500;">
+                                    평가 ${stock.evalKRW.toLocaleString()}원 (${profit > 0 ? '+' : ''}${profitRate}%)
+                                </div>
+                                <div class="stock-actions">
                                     <button class="btn-sm" onclick="editStock(${stock.id})">수정</button>
                                     <button class="btn-sm btn-delete" onclick="deleteStock(${stock.id})">삭제</button>
                                 </div>
                             </div>
                             <div class="stock-yields">
-                                <div class="yield-target">실제 ${stock.targetYield || stock.officialYield || '-'}</div>
-                                <div class="yield-official">(공시 ${stock.officialYield || '-'})</div>
+                                <div class="yield-target">실제 ${stock.targetYield || stock.officialYield || '0.0%'}</div>
+                                <div class="yield-official">(공시 ${stock.officialYield || '0.0%'})</div>
                                 <div class="div-amount">연 ${stock.annualDivKRW.toLocaleString()}원</div>
                             </div>
                         </div>
                     `;
                 }).join('');
-
-                renderMonthlyChart(data.holdings);
-            } catch (error) {
-                document.getElementById('stockList').innerHTML = '<div style="text-align:center; color:red; padding:20px;">데이터를 불러올 수 없습니다.</div>';
             }
+
+            renderMonthlyChartAndDetails(holdingsList);
         }
 
-        function renderMonthlyChart(holdings) {
+        function runRuleFitChecks(summary, holdingsList) {
+            const ruleListContainer = document.getElementById('ruleList');
+            const totalEval = summary.totalEvalKRW;
+
+            if (holdingsList.length === 0 || totalEval === 0) {
+                ruleListContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">종목 정보 분석 중...</div>';
+                return;
+            }
+
+            const rules = [];
+
+            let highestStock = { name: '', percent: 0 };
+            holdingsList.forEach(stock => {
+                const pct = (stock.evalKRW / totalEval) * 100;
+                if (pct > highestStock.percent) {
+                    highestStock = { name: stock.name, percent: pct };
+                }
+            });
+
+            const rule1Pass = highestStock.percent <= 15.0;
+            rules.push({
+                name: "규칙 1: 특정 단일 종목의 비중 제한 (최대 15%)",
+                desc: rule1Pass 
+                    ? `통과! 가장 비중이 큰 종목은 '${highestStock.name}'(${highestStock.percent.toFixed(1)}%)로 포트폴리오가 균형 잡혀 있습니다.`
+                    : `경고! 단일 종목 '${highestStock.name}'의 비중이 ${highestStock.percent.toFixed(1)}%로 권장 제한선(15%)을 초과했습니다. 분산 투자를 추천합니다.`,
+                status: rule1Pass
+            });
+
+            const highYieldCodes = ["JEPQ", "GPIX", "472150.KS", "486290.KS", "472150", "486290"];
+            let highYieldSum = 0;
+            holdingsList.forEach(stock => {
+                const codeUpper = (stock.code || "").toUpperCase().trim();
+                const matched = highYieldCodes.some(c => codeUpper.includes(c));
+                if (matched) {
+                    highYieldSum += stock.evalKRW;
+                }
+            });
+            const highYieldPct = (highYieldSum / totalEval) * 100;
+            const rule2Pass = highYieldPct <= 30.0;
+            rules.push({
+                name: "규칙 2: 고배당/커버드콜 자산 비중 관리 (최대 30%)",
+                desc: rule2Pass
+                    ? `통과! 고배당/커버드콜 ETF 비중이 ${highYieldPct.toFixed(1)}%로 안정적으로 유지되고 있습니다.`
+                    : `경고! 고배당/커버드콜 ETF의 합산 비중이 ${highYieldPct.toFixed(1)}%로 제한치(30%)를 초과했습니다. 원금 변동성에 유의하세요.`,
+                status: rule2Pass
+            });
+
+            let taxFreeSum = 0;
+            holdingsList.forEach(stock => {
+                if (['ISA', 'IRP', '연금저축'].includes(stock.account)) {
+                    taxFreeSum += stock.evalKRW;
+                }
+            });
+            const taxFreePct = (taxFreeSum / totalEval) * 100;
+            const rule3Pass = taxFreePct >= 30.0;
+            rules.push({
+                name: "규칙 3: 절세 계좌 활용 극대화 (최소 30% 권장)",
+                desc: rule3Pass
+                    ? `통과! 포트폴리오의 ${taxFreePct.toFixed(1)}%가 절세 계좌(ISA/IRP/연금)에 보관되어 있어 세금을 현명하게 아끼고 있습니다.`
+                    : `권장! 절세 계좌의 자산 비중이 ${taxFreePct.toFixed(1)}%로 아직 다소 낮습니다. (권장: 30% 이상) 세제 혜택 극대화를 위해 이전을 고려해 보세요.`,
+                status: rule3Pass
+            });
+
+            ruleListContainer.innerHTML = rules.map(r => `
+                <div class="rule-item ${r.status ? 'pass' : 'fail'}">
+                    <span class="rule-status-icon">${r.status ? '✅' : '⚠️'}</span>
+                    <div class="rule-content">
+                        <span class="rule-name">${r.name}</span>
+                        <span class="rule-desc">${r.desc}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderMonthlyChartAndDetails(holdingsList) {
             const monthlyTotals = Array(12).fill(0);
-            holdings.forEach(stock => {
-                const code = (stock.code || "").toUpperCase();
-                const schedule = DIV_SCHEDULES[code] || [1,2,3,4,5,6,7,8,9,10,11,12];
+            const monthlyDetails = Array.from({ length: 12 }, () => []);
+
+            holdingsList.forEach(stock => {
+                const code = (stock.code || "").toUpperCase().trim();
+                let schedule = DIV_SCHEDULES[code];
+                
+                if (!schedule && stock.months && stock.months.length > 0) {
+                    schedule = stock.months;
+                }
+                
+                if (!schedule || schedule.length === 0) {
+                    schedule = [1,2,3,4,5,6,7,8,9,10,11,12];
+                }
+
                 const divPerPayment = stock.annualDivKRW / schedule.length;
-                schedule.forEach(month => { monthlyTotals[month - 1] += divPerPayment; });
+                schedule.forEach(month => {
+                    const mIndex = month - 1;
+                    monthlyTotals[mIndex] += divPerPayment;
+                    
+                    monthlyDetails[mIndex].push({
+                        name: stock.name,
+                        amount: Math.round(divPerPayment),
+                        account: stock.account
+                    });
+                });
             });
 
             const ctx = document.getElementById('monthlyChart').getContext('2d');
@@ -185,10 +1045,88 @@
                 type: 'bar',
                 data: {
                     labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
-                    datasets: [{ label: '예상 월 배당금(원)', data: monthlyTotals.map(val => Math.round(val)), backgroundColor: '#0d6efd', borderRadius: 6 }]
+                    datasets: [{
+                        label: '예상 월 배당금 (원)',
+                        data: monthlyTotals.map(val => Math.round(val)),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6,
+                        hoverBackgroundColor: '#60a5fa'
+                    }]
                 },
-                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => (v / 10000).toLocaleString() + '만' } } } }
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#9ca3af' } },
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: '#9ca3af',
+                                callback: v => (v / 10000).toLocaleString() + '만' 
+                            } 
+                        }
+                    }
+                }
             });
+
+            const accordionContainer = document.getElementById('monthlyAccordion');
+            accordionContainer.innerHTML = monthlyTotals.map((monthTotal, mIdx) => {
+                const monthName = `${mIdx + 1}월`;
+                const details = monthlyDetails[mIdx];
+                const totalText = Math.round(monthTotal).toLocaleString() + '원';
+
+                let detailsContent = '';
+                if (details.length === 0) {
+                    detailsContent = `<div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 10px 0;">이달은 수령할 배당이 없습니다.</div>`;
+                } else {
+                    details.sort((a, b) => b.amount - a.amount);
+                    detailsContent = details.map(d => `
+                        <div class="accordion-content-row">
+                            <span class="stock">${d.name} <span class="badge ${d.account === 'ISA' ? 'isa' : (d.account === 'IRP' ? 'irp' : (d.account === '연금저축' ? 'pension' : 'general'))}">${d.account}</span></span>
+                            <span>${d.amount.toLocaleString()}원</span>
+                        </div>
+                    `).join('');
+                }
+
+                return `
+                    <div class="accordion-item">
+                        <div class="accordion-header" onclick="toggleAccordion(${mIdx})">
+                            <span>📅 ${monthName}</span>
+                            <span class="amount" id="accordionAmount-${mIdx}">${totalText} ▾</span>
+                        </div>
+                        <div class="accordion-content" id="accordionContent-${mIdx}">
+                            ${detailsContent}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleAccordion(idx) {
+            const content = document.getElementById(`accordionContent-${idx}`);
+            const isVisible = content.style.display === 'block';
+            
+            for (let i = 0; i < 12; i++) {
+                document.getElementById(`accordionContent-${i}`).style.display = 'none';
+                const headerAmt = document.getElementById(`accordionAmount-${i}`);
+                if (headerAmt) {
+                    headerAmt.innerText = headerAmt.innerText.replace('▴', '▾');
+                }
+            }
+
+            if (!isVisible) {
+                content.style.display = 'block';
+                const currentHeader = document.getElementById(`accordionAmount-${idx}`);
+                currentHeader.innerText = currentHeader.innerText.replace('▾', '▴');
+            }
+        }
+
+        function toggleManualFields() {
+            const isManual = document.getElementById('inputManual').checked;
+            document.getElementById('manualFields').style.display = isManual ? 'block' : 'none';
         }
 
         function openModal() {
@@ -198,60 +1136,116 @@
             document.getElementById('inputCode').value = "";
             document.getElementById('inputQty').value = "";
             document.getElementById('inputAvg').value = "";
+            document.getElementById('inputManual').checked = false;
+            document.getElementById('inputPrice').value = "";
+            document.getElementById('inputDiv').value = "";
+            document.getElementById('inputCurrency').value = "KRW";
+            toggleManualFields();
             document.getElementById('stockModal').style.display = 'flex';
         }
 
-        function closeModal() { document.getElementById('stockModal').style.display = 'none'; }
+        function closeModal() { 
+            document.getElementById('stockModal').style.display = 'none'; 
+        }
 
         function editStock(id) {
-            const item = globalHoldings.find(h => h.id === id);
+            const item = globalHoldings[id];
             if (!item) return;
 
             document.getElementById('modalTitle').innerText = "종목 수정";
             document.getElementById('editId').value = id;
-            document.getElementById('inputName').value = item.name;
-            document.getElementById('inputCode').value = item.code;
-            document.getElementById('inputAccount').value = item.account;
-            document.getElementById('inputQty').value = item.qty;
-            document.getElementById('inputAvg').value = item.avg;
+            document.getElementById('inputName').value = item.name || '';
+            document.getElementById('inputCode').value = item.code || '';
+            document.getElementById('inputAccount').value = item.account || '일반';
+            document.getElementById('inputQty').value = item.qty || '';
+            document.getElementById('inputAvg').value = item.avg || '';
+            
+            if (item.isManual) {
+                document.getElementById('inputManual').checked = true;
+                document.getElementById('inputPrice').value = item.price !== undefined ? item.price : '';
+                document.getElementById('inputDiv').value = item.divPerShare !== undefined ? item.divPerShare : '';
+                document.getElementById('inputCurrency').value = item.currency || 'KRW';
+            } else {
+                document.getElementById('inputManual').checked = false;
+                document.getElementById('inputPrice').value = "";
+                document.getElementById('inputDiv').value = "";
+                document.getElementById('inputCurrency').value = "KRW";
+            }
+            toggleManualFields();
             document.getElementById('stockModal').style.display = 'flex';
         }
 
         async function saveStock() {
             const id = document.getElementById('editId').value;
-            const name = document.getElementById('inputName').value;
-            const code = document.getElementById('inputCode').value;
+            const name = document.getElementById('inputName').value.trim();
+            const code = document.getElementById('inputCode').value.trim();
             const account = document.getElementById('inputAccount').value;
             const qty = document.getElementById('inputQty').value;
             const avg = document.getElementById('inputAvg').value;
 
-            if (!qty || !avg) return alert("수량과 평단가를 입력해 주세요.");
+            if (!code || !qty || !avg) return alert("종목코드, 수량, 평단가를 입력해 주세요.");
 
-            const endpoint = id !== "" ? '/tools/update-stock' : '/tools/add-stock';
-            const bodyData = id !== "" ? { id: Number(id), name, code, account, qty, avg } : { name, code, account, qty, avg };
+            const bodyData = { 
+                name: name || code, 
+                code: code, 
+                qty: Number(qty), 
+                avg: Number(avg), 
+                account: account 
+            };
 
-            await fetch(`https://rulefit-mcp.onrender.com${endpoint}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bodyData)
-            });
+            if (isLocalServerMode) {
+                // 1. 서버 모드
+                const endpoint = id !== "" ? '/tools/update-stock' : '/tools/add-stock';
+                const reqBody = id !== "" ? { id: Number(id), ...bodyData } : bodyData;
+                
+                try {
+                    await fetch(`http://localhost:3000${endpoint}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reqBody)
+                    });
+                } catch (e) {
+                    alert("서버 저장에 실패했습니다. 오프라인 모드로 임시 전환합니다.");
+                }
+            } else {
+                // 2. 로컬스토리지 모드
+                const holdings = getLocalStorageHoldings();
+                if (id !== "") {
+                    holdings[Number(id)] = bodyData;
+                } else {
+                    holdings.push(bodyData);
+                }
+                setLocalStorageHoldings(holdings);
+            }
 
             closeModal();
             loadPortfolio();
         }
 
+        // 종목 삭제
         async function deleteStock(id) {
             if (!confirm("정말 이 종목을 삭제하시겠습니까?")) return;
 
-            await fetch('https://rulefit-mcp.onrender.com/tools/delete-stock', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: Number(id) })
-            });
+            if (isLocalServerMode) {
+                try {
+                    await fetch('http://localhost:3000/tools/delete-stock', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: Number(id) })
+                    });
+                } catch (e) {
+                    alert("서버 통신에 실패했습니다.");
+                }
+            } else {
+                const holdings = getLocalStorageHoldings();
+                holdings.splice(Number(id), 1);
+                setLocalStorageHoldings(holdings);
+            }
 
             loadPortfolio();
         }
 
+        // 최초 실행
         loadPortfolio();
     </script>
 </body>

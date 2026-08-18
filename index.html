@@ -96,45 +96,59 @@
         }
 
         /* 대시보드 카드 그리드 */
-        .card-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 16px; 
-            margin-bottom: 24px; 
-        }
-        .card { 
-            background: var(--card-bg); 
-            border-radius: 16px; 
-            padding: 18px; 
+        .summary-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px 18px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+            margin-bottom: 16px;
         }
-        .card:hover {
-            transform: translateY(-2px);
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0;
         }
-        .card .label { 
-            font-size: 0.8rem; 
-            color: var(--text-muted); 
-            margin-bottom: 8px; 
-            font-weight: 600; 
-            letter-spacing: 0.05em;
+        .summary-item {
+            padding: 10px 12px;
+            border-right: 1px solid var(--border-color);
         }
-        .card .value { 
-            font-size: 1.3rem; 
-            font-weight: 800; 
-            color: var(--text-main); 
-            word-break: break-all; 
+        .summary-item:last-child { border-right: none; }
+        .summary-item .s-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
         }
+        .summary-item .s-value {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-main);
+            word-break: break-all;
+        }
+        .summary-item .s-value.blue { color: #60a5fa; }
+        .summary-item .s-value.green { color: #10b981; }
+        .summary-item .s-value.red { color: #f87171; }
+        .summary-item .s-sub {
+            font-size: 0.7rem;
+            margin-top: 2px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .summary-item .s-sub.green { color: #34d399; }
+        .summary-item .s-sub.red { color: #f87171; }
+        .summary-divider {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 8px 0;
+        }
+        /* 이전 카드 스타일 유지 (호환성) */
+        .card { display: none; }
         .card .value.blue { color: #60a5fa; }
         .card .value.green { color: #10b981; }
         .card .value.red { color: #f87171; }
-        .card .sub-value {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-            font-weight: 500;
-        }
+        .card .sub-value { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
         .card .sub-value.green { color: #34d399; }
         .card .sub-value.red { color: #f87171; }
 
@@ -142,8 +156,8 @@
         .goal-card {
             background: var(--card-bg);
             border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
             border: 1px solid var(--border-color);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
@@ -151,15 +165,57 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
+        }
+        .goal-title-area {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .goal-title {
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: var(--text-main);
         }
+        .goal-edit-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+        .goal-edit-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
+        .goal-edit-area {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .goal-edit-area input {
+            background: #1f2937;
+            border: 1px solid var(--primary);
+            border-radius: 6px;
+            color: var(--text-main);
+            padding: 4px 10px;
+            font-size: 0.85rem;
+            width: 140px;
+            outline: none;
+        }
+        .goal-edit-area button {
+            background: var(--primary);
+            border: none;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
         .goal-percent {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 800;
             color: var(--warning);
         }
@@ -529,36 +585,53 @@
             </div>
         </div>
 
-        <!-- 대시보드 요약 -->
-        <div class="card-grid">
-            <div class="card">
-                <div class="label">총 평가자산</div>
-                <div class="value" id="totalEval">0원</div>
+        <!-- 대시보드 요약 - 콤팩트 -->
+        <div class="summary-card">
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="s-label">평가자산</div>
+                    <div class="s-value" id="totalEval">0원</div>
+                </div>
+                <div class="summary-item">
+                    <div class="s-label">매입자산</div>
+                    <div class="s-value" id="totalInvest">0원</div>
+                </div>
+                <div class="summary-item">
+                    <div class="s-label">수익률</div>
+                    <div class="s-value" id="totalReturnRate">0.00%</div>
+                    <div class="s-sub" id="totalProfitAmt">0원</div>
+                </div>
             </div>
-            <div class="card">
-                <div class="label">총 매입자산</div>
-                <div class="value" id="totalInvest">0원</div>
-            </div>
-            <div class="card">
-                <div class="label">연간 실수령 배당금</div>
-                <div class="value blue" id="totalAnnualDiv">0원</div>
-            </div>
-            <div class="card">
-                <div class="label">평균 배당수익률</div>
-                <div class="value green" id="totalYieldRate">0.00%</div>
-            </div>
-            <div class="card" style="grid-column: 1 / -1;">
-                <div class="label">총 수익률 (평가 손익)</div>
-                <div class="value" id="totalReturnRate">0.00%</div>
-                <div class="sub-value" id="totalProfitAmt">0원</div>
+            <hr class="summary-divider">
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="s-label">연 배당(실수령)</div>
+                    <div class="s-value blue" id="totalAnnualDiv">0원</div>
+                </div>
+                <div class="summary-item">
+                    <div class="s-label">배당수익률</div>
+                    <div class="s-value green" id="totalYieldRate">0.00%</div>
+                </div>
+                <div class="summary-item">
+                    <div class="s-label">월 평균 수령액</div>
+                    <div class="s-value blue" id="monthlyDivSummary">0원</div>
+                </div>
             </div>
         </div>
 
         <!-- 목표 배당금 게이지 카드 -->
         <div class="goal-card">
             <div class="goal-header">
-                <span class="goal-title">🎯 월 배당금 달성 목표 (목표: 월 500만원)</span>
+                <div class="goal-title-area">
+                    <span class="goal-title">🎯 월 배당 목표</span>
+                    <button class="goal-edit-btn" onclick="toggleGoalEdit()" title="목표 금액 수정">✏️ 수정</button>
+                </div>
                 <span class="goal-percent" id="goalPercent">0.0%</span>
+            </div>
+            <div class="goal-edit-area" id="goalEditArea">
+                <input type="number" id="goalInput" placeholder="목표 월 배당(원)" />
+                <button onclick="saveGoal()">저장</button>
+                <button onclick="toggleGoalEdit()" style="background:#374151;">취소</button>
             </div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="goalProgressBar"></div>
@@ -740,8 +813,8 @@
             { name: "TIGER 미국나스닥100타겟데일리커버드콜", code: "486290.KS", qty: 100, avg: 11080, account: "연금저축" }
         ];
 
-        // 500만원 목표 상수 설정
-        const MONTHLY_DIV_GOAL = 5000000;
+        // 목표 금액 - localStorage에서 로드 (기본값 500만원)
+        let MONTHLY_DIV_GOAL = parseInt(localStorage.getItem('rulefit_goal') || '5000000');
 
         // 로컬스토리지 관련 헬퍼 함수
         function getLocalStorageHoldings() {
@@ -933,23 +1006,28 @@
         }
 
         function renderDashboard(summary, holdingsList) {
+            // 컴팩트 요약 카드 업데이트
             document.getElementById('totalEval').innerText = summary.totalEvalKRW.toLocaleString() + '원';
             document.getElementById('totalInvest').innerText = summary.totalInvestKRW.toLocaleString() + '원';
             document.getElementById('totalAnnualDiv').innerText = summary.totalAnnualDivKRW.toLocaleString() + '원';
             document.getElementById('totalYieldRate').innerText = summary.totalYieldRate;
 
-            // 수익률 카드
+            // 수익률 + 수익금액
             const profit = summary.totalProfitKRW;
             const returnEl = document.getElementById('totalReturnRate');
             const profitEl = document.getElementById('totalProfitAmt');
             returnEl.innerText = (profit >= 0 ? '+' : '') + summary.totalReturnRate;
-            returnEl.className = 'value ' + (profit >= 0 ? 'green' : 'red');
+            returnEl.className = 's-value ' + (profit >= 0 ? 'green' : 'red');
             profitEl.innerText = (profit >= 0 ? '+' : '') + profit.toLocaleString() + '원';
-            profitEl.className = 'sub-value ' + (profit >= 0 ? 'green' : 'red');
+            profitEl.className = 's-sub ' + (profit >= 0 ? 'green' : 'red');
 
+            // 월 평균 수령액
             const monthlyDiv = Math.round(summary.totalAnnualDivKRW / 12);
-            document.getElementById('currentMonthlyDivText').innerText = `현재: 월 ${monthlyDiv.toLocaleString()}원`;
-            
+            const mEl = document.getElementById('monthlyDivSummary');
+            if (mEl) mEl.innerText = monthlyDiv.toLocaleString() + '원';
+
+            // 목표 게이지
+            document.getElementById('currentMonthlyDivText').innerText = `현재: 월 ${monthlyDiv.toLocaleString()}원 / 목표: 월 ${MONTHLY_DIV_GOAL.toLocaleString()}원`;
             const goalPercent = Math.min(((monthlyDiv / MONTHLY_DIV_GOAL) * 100), 100.0).toFixed(1);
             document.getElementById('goalPercent').innerText = `${goalPercent}%`;
             document.getElementById('goalProgressBar').style.width = `${goalPercent}%`;
@@ -957,8 +1035,9 @@
             const diff = MONTHLY_DIV_GOAL - monthlyDiv;
             if (diff > 0) {
                 document.getElementById('remainingDivText').innerText = `목표까지 월 ${diff.toLocaleString()}원 추가 확보 필요`;
+                document.getElementById('remainingDivText').style.color = '';
             } else {
-                document.getElementById('remainingDivText').innerText = `🎉 배당 목표 초과 달성! (초과액: 월 ${Math.abs(diff).toLocaleString()}원)`;
+                document.getElementById('remainingDivText').innerText = `🎉 목표 초과 달성! (초과: 월 ${Math.abs(diff).toLocaleString()}원)`;
                 document.getElementById('remainingDivText').style.color = '#34d399';
             }
 
@@ -1261,16 +1340,23 @@
             }
         }
 
-        function toggleRuleExplain() {
-            const el = document.getElementById('ruleExplain');
-            const btn = document.getElementById('ruleToggleBtn');
-            if (el.style.display === 'none') {
-                el.style.display = 'block';
-                btn.innerText = '원칙 안내 ▴';
-            } else {
-                el.style.display = 'none';
-                btn.innerText = '원칙 안내 ▾';
+        function toggleGoalEdit() {
+            const area = document.getElementById('goalEditArea');
+            const isVisible = area.style.display === 'flex';
+            area.style.display = isVisible ? 'none' : 'flex';
+            if (!isVisible) {
+                document.getElementById('goalInput').value = MONTHLY_DIV_GOAL;
+                document.getElementById('goalInput').focus();
             }
+        }
+
+        function saveGoal() {
+            const val = parseInt(document.getElementById('goalInput').value);
+            if (!val || val <= 0) { alert('유효한 금액을 입력해주세요.'); return; }
+            MONTHLY_DIV_GOAL = val;
+            localStorage.setItem('rulefit_goal', val);
+            toggleGoalEdit();
+            loadPortfolio();
         }
 
         function toggleRuleExplain() {

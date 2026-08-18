@@ -1,16 +1,16 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// GitHub Auto-Commit 설정
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = "pabusu84/RuleFit";
-const FILE_PATH = "server/server.js";
+const HOLDINGS_FILE = path.join(__dirname, '../holdings.json');
+const DATA_FILE = path.join(__dirname, '../data.json');
 
-// 주식 및 배당 기초 데이터 (공시 배당률 vs 실제 목표 배당률)
+// 주식 및 배당 기초 데이터 백업 (data.json에 없는 경우 대비)
 const BACKUP_STOCKS = {
     "005930.KS": { name: "삼성전자", price: 60000, divPerShare: 1444, officialYield: "2.4%", targetYield: "2.4%" },
     "005935.KS": { name: "삼성전자우", price: 50000, divPerShare: 1445, officialYield: "2.9%", targetYield: "2.9%" },
@@ -27,8 +27,8 @@ const BACKUP_STOCKS = {
     "AAPL": { name: "AAPL", price: 220.0, divPerShare: 1.0, officialYield: "0.5%", targetYield: "0.5%", currency: "USD" }
 };
 
-// 📌 [기존 이미지 기반 15개 전체 보유 목록 영구 고정]
-let holdings = [
+// 기본 보유 종목 초기 데이터
+const DEFAULT_HOLDINGS = [
     { name: "삼성전자우", code: "005935.KS", qty: 400, avg: 188396, account: "일반" },
     { name: "SK하이닉스", code: "000660.KS", qty: 30, avg: 2162833, account: "일반" },
     { name: "JEPQ", code: "JEPQ", qty: 373, avg: 57.09, account: "일반" },
@@ -46,61 +46,133 @@ let holdings = [
     { name: "TIGER 미국나스닥100타겟데일리커버드콜", code: "486290.KS", qty: 100, avg: 11080, account: "연금저축" }
 ];
 
-const EXCHANGE_RATE = 1350;
-
-// GitHub 코드 자동 Commit/Push 처리 함수
-async function saveToGitHub() {
-    if (!GITHUB_TOKEN) return;
+// holdings.json 로드 또는 초기화
+function loadHoldings() {
     try {
-        const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}`;
-        const getFile = await fetch(url, {
-            headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'RuleFit-App' }
-        });
-        const fileData = await getFile.json();
-        
-        const fs = require('fs');
-        let currentCode = fs.readFileSync(__filename, 'utf8');
-        const updatedHoldingsStr = `let holdings = ${JSON.stringify(holdings, null, 4)};`;
-        const updatedCode = currentCode.replace(/let holdings = \[[\s\S]*?\];/, updatedHoldingsStr);
-
-        const body = {
-            message: "Auto-update holdings via API",
-            content: Buffer.from(updatedCode).toString('base64'),
-            sha: fileData.sha
-        };
-
-        await fetch(url, {
-            method: 'PUT',
-            headers: { 
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Content-Type': 'application/json',
-                'User-Agent': 'RuleFit-App'
-            },
-            body: JSON.stringify(body)
-        });
-    } catch (error) {
-        console.error("GitHub Auto-Commit 실패:", error);
+        if (fs.existsSync(HOLDINGS_FILE)) {
+            const fileContent = fs.readFileSync(HOLDINGS_FILE, 'utf-8');
+            return JSON.parse(fileContent);
+        }
+    } catch (e) {
+        console.error("holdings.json 로드 실패:", e);
     }
+    // 기본 데이터로 새 파일 생성
+    saveHoldings(DEFAULT_HOLDINGS);
+    return DEFAULT_HOLDINGS;
+}
+
+// holdings.json 저장
+function saveHoldings(holdings) {
+    try {
+        fs.writeFileSync(HOLDINGS_FILE, JSON.stringify(holdings, null, 2), 'utf-8');
+    } catch (e) {
+        console.error("holdings.json 저장 실패:", e);
+    }
+}
+
+// data.json (실시간 수집 데이터) 로드
+function loadCollectedData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+        }
+    } catch (e) {
+        console.error("data.json 로드 실패:", e);
+    }
+    return { exchangeRate: 1350.0, stocks: {} };
+}
+
+// 특정 종목의 가격 및 배당 정보 조회
+function getStockInfo(item, collectedData) {
+    // 사용자가 가격/배당금을 직접 수동 입력한 종목인 경우
+    if (item.isManual) {
+        const price = Number(item.price) || 0;
+        const divPerShare = Number(item.divPerShare) || 0;
+        const currency = item.currency || 'KRW';
+        const calculatedYield = price > 0 ? ((divPerShare / price) * 100).toFixed(1) + '%' : '0.0%';
+        return {
+            price,
+            divPerShare,
+            currency,
+            months: item.months || [1,2,3,4,5,6,7,8,9,10,11,12],
+            officialYield: calculatedYield,
+            targetYield: calculatedYield
+        };
+    }
+
+    const rawCode = (item.code || "").toUpperCase();
+    const cleanCode = rawCode.replace('.KS', '').replace('.KQ', '');
+    
+    let price = 0;
+    let divPerShare = 0;
+    let currency = 'KRW';
+    let months = [];
+
+    // 1. data.json 에서 먼저 조회
+    let stockData = null;
+    if (collectedData && collectedData.stocks) {
+        stockData = collectedData.stocks[rawCode] || collectedData.stocks[cleanCode];
+    }
+
+    if (stockData) {
+        price = stockData.price || 0;
+        divPerShare = stockData.divPerShare || 0;
+        currency = stockData.currency || 'KRW';
+        months = stockData.months || [];
+    } else {
+        // 2. data.json에 없으면 BACKUP_STOCKS 백업 데이터 활용
+        const backup = BACKUP_STOCKS[rawCode] || BACKUP_STOCKS[cleanCode];
+        if (backup) {
+            price = backup.price || 0;
+            divPerShare = backup.divPerShare || 0;
+            currency = backup.currency || 'KRW';
+            months = backup.months || [];
+        }
+    }
+
+    // 배당수익률 및 목표배당수익률 계산
+    let calculatedYield = price > 0 ? ((divPerShare / price) * 100).toFixed(1) + '%' : '0.0%';
+    let officialYield = calculatedYield;
+    let targetYield = calculatedYield;
+
+    // 특정 ETF 상품들의 목표 배당률 고정 보정값 (백업 정보 반영)
+    const backup = BACKUP_STOCKS[rawCode] || BACKUP_STOCKS[cleanCode];
+    if (backup) {
+        if (backup.officialYield) officialYield = backup.officialYield;
+        if (backup.targetYield) targetYield = backup.targetYield;
+    }
+
+    return {
+        price,
+        divPerShare,
+        currency,
+        months: months.length > 0 ? months : [1,2,3,4,5,6,7,8,9,10,11,12],
+        officialYield,
+        targetYield
+    };
 }
 
 // 1. 전체 포트폴리오 조회 API
 app.get('/tools/get-portfolio', (req, res) => {
+    const holdings = loadHoldings();
+    const collectedData = loadCollectedData();
+    const exchangeRate = collectedData.exchangeRate || 1350.0;
+
     let totalInvestKRW = 0;
     let totalEvalKRW = 0;
     let totalAnnualDivKRW = 0;
 
     const list = holdings.map((item, index) => {
-        const rawCode = (item.code || "").toUpperCase();
-        const info = BACKUP_STOCKS[rawCode] || { price: item.avg, divPerShare: 0 };
+        const info = getStockInfo(item, collectedData);
         const isUSD = info.currency === 'USD';
 
-        const priceKRW = isUSD ? Math.round(info.price * EXCHANGE_RATE) : info.price;
-        const divKRW = isUSD ? (info.divPerShare * EXCHANGE_RATE) : info.divPerShare;
-        const investKRW = isUSD ? (item.qty * item.avg * EXCHANGE_RATE) : (item.qty * item.avg);
+        const priceKRW = isUSD ? Math.round(info.price * exchangeRate) : info.price;
+        const divKRW = isUSD ? (info.divPerShare * exchangeRate) : info.divPerShare;
+        const investKRW = isUSD ? (item.qty * item.avg * exchangeRate) : (item.qty * item.avg);
         const evalKRW = item.qty * priceKRW;
         
         const isTaxFreeAccount = ['ISA', 'IRP', '연금저축'].includes(item.account);
-        const taxFactor = isTaxFreeAccount ? 1.0 : 0.846;
+        const taxFactor = isTaxFreeAccount ? 1.0 : 0.846; // 일반 계좌는 15.4% 원천징수 반영
         const annualDivKRW = item.qty * divKRW * taxFactor;
 
         totalInvestKRW += investKRW;
@@ -109,21 +181,28 @@ app.get('/tools/get-portfolio', (req, res) => {
 
         return {
             id: index,
-            name: item.name,
+            name: item.name || info.name || item.code,
             code: item.code,
             account: item.account,
             qty: item.qty,
             avg: item.avg,
-            officialYield: info.officialYield || "-",
-            targetYield: info.targetYield || "-",
+            price: priceKRW,
+            officialYield: info.officialYield,
+            targetYield: info.targetYield,
             annualDivKRW: Math.round(annualDivKRW),
-            investKRW: Math.round(investKRW)
+            investKRW: Math.round(investKRW),
+            evalKRW: Math.round(evalKRW),
+            months: info.months,
+            isManual: item.isManual,
+            manualPrice: item.price,
+            manualDivPerShare: item.divPerShare,
+            manualCurrency: item.currency
         };
     });
 
     const totalProfitKRW = totalEvalKRW - totalInvestKRW;
-    const totalReturnRate = totalInvestKRW > 0 ? ((totalProfitKRW / totalInvestKRW) * 100).toFixed(2) + '%' : '0%';
-    const totalYieldRate = totalInvestKRW > 0 ? ((totalAnnualDivKRW / totalInvestKRW) * 100).toFixed(2) + '%' : '0%';
+    const totalReturnRate = totalInvestKRW > 0 ? ((totalProfitKRW / totalInvestKRW) * 100).toFixed(2) + '%' : '0.00%';
+    const totalYieldRate = totalInvestKRW > 0 ? ((totalAnnualDivKRW / totalInvestKRW) * 100).toFixed(2) + '%' : '0.00%';
 
     res.json({
         success: true,
@@ -133,30 +212,50 @@ app.get('/tools/get-portfolio', (req, res) => {
             totalProfitKRW: Math.round(totalProfitKRW),
             totalReturnRate,
             totalAnnualDivKRW: Math.round(totalAnnualDivKRW),
-            totalYieldRate
+            totalYieldRate,
+            exchangeRate
         },
         holdings: list
     });
 });
 
 // 2. 종목 추가 API
-app.post('/tools/add-stock', async (req, res) => {
-    const { name, code, qty, avg, account } = req.body;
+app.post('/tools/add-stock', (req, res) => {
+    const { name, code, qty, avg, account, isManual, price, divPerShare, currency } = req.body;
     if (!qty || !avg) return res.status(400).json({ success: false, message: "수량과 평단가는 필수입니다." });
 
-    const newStock = { name: name || code || "미지정 종목", code: code || "", qty: Number(qty), avg: Number(avg), account: account || "일반" };
-    holdings.push(newStock);
-    await saveToGitHub();
+    const holdings = loadHoldings();
+    const newStock = { 
+        name: name || code || "미지정 종목", 
+        code: code || "", 
+        qty: Number(qty), 
+        avg: Number(avg), 
+        account: account || "일반" 
+    };
 
-    res.json({ success: true, message: "종목이 성공적으로 추가되어 저장되었습니다.", added: newStock });
+    if (isManual) {
+        newStock.isManual = true;
+        newStock.price = Number(price) || 0;
+        newStock.divPerShare = Number(divPerShare) || 0;
+        newStock.currency = currency || 'KRW';
+    }
+
+    holdings.push(newStock);
+    saveHoldings(holdings);
+
+    res.json({ success: true, message: "종목이 성공적으로 추가되었습니다.", added: newStock });
 });
 
 // 3. 종목 수정 API
-app.post('/tools/update-stock', async (req, res) => {
-    const { id, name, code, qty, avg, account } = req.body;
-    if (id === undefined || id < 0 || id >= holdings.length) return res.status(400).json({ success: false, message: "유효하지 않은 ID입니다." });
+app.post('/tools/update-stock', (req, res) => {
+    const { id, name, code, qty, avg, account, isManual, price, divPerShare, currency } = req.body;
+    const holdings = loadHoldings();
+    
+    if (id === undefined || id < 0 || id >= holdings.length) {
+        return res.status(400).json({ success: false, message: "유효하지 않은 ID입니다." });
+    }
 
-    holdings[id] = {
+    const updatedStock = {
         name: name || holdings[id].name,
         code: code || holdings[id].code,
         qty: Number(qty),
@@ -164,22 +263,35 @@ app.post('/tools/update-stock', async (req, res) => {
         account: account || holdings[id].account
     };
 
-    await saveToGitHub();
+    if (isManual) {
+        updatedStock.isManual = true;
+        updatedStock.price = Number(price) || 0;
+        updatedStock.divPerShare = Number(divPerShare) || 0;
+        updatedStock.currency = currency || 'KRW';
+    }
+
+    holdings[id] = updatedStock;
+
+    saveHoldings(holdings);
     res.json({ success: true, message: "종목 정보가 수정되었습니다." });
 });
 
 // 4. 종목 삭제 API
-app.post('/tools/delete-stock', async (req, res) => {
+app.post('/tools/delete-stock', (req, res) => {
     const { id } = req.body;
-    if (id === undefined || id < 0 || id >= holdings.length) return res.status(400).json({ success: false, message: "유효하지 않은 ID입니다." });
+    const holdings = loadHoldings();
+
+    if (id === undefined || id < 0 || id >= holdings.length) {
+        return res.status(400).json({ success: false, message: "유효하지 않은 ID입니다." });
+    }
 
     const removed = holdings.splice(id, 1);
-    await saveToGitHub();
+    saveHoldings(holdings);
 
     res.json({ success: true, message: "종목이 삭제되었습니다.", removed });
 });
 
-app.get('/', (req, res) => res.send("RuleFit REST API Server is running"));
+app.get('/', (req, res) => res.send("RuleFit API Server is running"));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

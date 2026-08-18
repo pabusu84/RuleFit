@@ -1,246 +1,258 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RuleFit 포트폴리오 개선안</title>
-  <style>
-    :root {
-      --bg-color: #f4f6f8;
-      --card-bg: #ffffff;
-      --text-color: #333333;
-      --text-sub: #666666;
-      --border-color: #e5e7eb;
-      --accent-blue: #2563eb;
-      --accent-green: #16a34a;
-      --accent-red: #dc2626;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuleFit 배당 포트폴리오</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f8f9fa; color: #212529; padding: 16px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .header h1 { font-size: 1.3rem; font-weight: 700; }
+        .add-btn { background: #0d6efd; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 16px;
-    }
+        .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        .card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .card .label { font-size: 0.8rem; color: #6c757d; margin-bottom: 6px; font-weight: 500; }
+        .card .value { font-size: 1.15rem; font-weight: 700; color: #111; word-break: break-all; }
+        .card .value.blue { color: #0d6efd; }
+        .card .value.green { color: #198754; }
 
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-    }
+        .chart-card, .list-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; }
+        .list-card h2, .chart-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: #333; }
+        
+        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f3f5; }
+        .stock-item:last-child { border-bottom: none; }
+        
+        .stock-info { display: flex; flex-direction: column; gap: 4px; }
+        .stock-name-row { display: flex; align-items: center; gap: 6px; }
+        .stock-name { font-weight: 700; font-size: 0.95rem; }
+        
+        .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+        .badge.isa { background-color: #e7f5ff; color: #1c7ed6; }
+        .badge.irp { background-color: #f3d9fa; color: #ae3ec9; }
+        .badge.pension { background-color: #fff3bf; color: #f59f00; }
+        .badge.general { background-color: #f1f3f5; color: #495057; }
+        
+        .stock-sub { font-size: 0.8rem; color: #868e96; }
 
-    /* 요약 카드 영역 (2x3 그리드) */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 24px;
-    }
+        .stock-yields { text-align: right; }
+        .yield-target { font-size: 0.9rem; font-weight: 700; color: #d6336c; }
+        .yield-official { font-size: 0.75rem; color: #adb5bd; }
+        .div-amount { font-size: 0.85rem; font-weight: 600; color: #212529; margin-top: 2px; }
 
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
+        .btn-sm { border: none; background: none; font-size: 0.8rem; cursor: pointer; color: #868e96; margin-right: 4px; }
+        .btn-sm:hover { text-decoration: underline; }
+        .btn-delete { color: #e03131; }
 
-    .card-title {
-      font-size: 13px;
-      color: var(--text-sub);
-      margin-bottom: 8px;
-    }
-
-    .card-value {
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .text-blue { color: var(--accent-blue); }
-    .text-green { color: var(--accent-green); }
-    .text-red { color: var(--accent-red); }
-
-    /* 보유 종목 리스트 */
-    .section-title {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .stock-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .stock-item {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 14px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .stock-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
-
-    .stock-name {
-      font-weight: 700;
-      font-size: 15px;
-    }
-
-    /* 계좌 태그 개선 스타일 */
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: 6px;
-      white-space: nowrap; /* 글자 줄바꿈 방지 */
-    }
-
-    .badge-normal { background-color: #f3f4f6; color: #4b5563; }
-    .badge-isa { background-color: #e0f2fe; color: #0369a1; }
-    .badge-irp { background-color: #f3e8ff; color: #6b21a8; }
-    .badge-pension { background-color: #fef3c7; color: #92400e; } /* 연금저축 태그 */
-
-    .stock-sub {
-      font-size: 12px;
-      color: var(--text-sub);
-    }
-
-    .stock-right {
-      text-align: right;
-    }
-
-    .stock-yield {
-      font-weight: 700;
-      font-size: 14px;
-    }
-  </style>
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: #fff; padding: 20px; border-radius: 14px; width: 90%; max-width: 400px; }
+        .modal-content h3 { margin-bottom: 16px; font-size: 1.1rem; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; color: #6c757d; margin-bottom: 4px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; }
+        .modal-btn-group { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+        .btn-cancel { background: #e9ecef; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+        .btn-save { background: #0d6efd; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+    </style>
 </head>
 <body>
-
-<div class="container">
-  <h2>포트폴리오 요약</h2>
-  
-  <!-- 상단 요약 카드 -->
-  <div class="summary-grid">
-    <div class="card">
-      <div class="card-title">총 평가금액</div>
-      <div class="card-value" id="total-eval">0원</div>
-    </div>
-    <div class="card">
-      <div class="card-title">총 투자금액</div>
-      <div class="card-value" id="total-invest">0원</div>
-    </div>
-    <div class="card">
-      <div class="card-title">총 손익 (전체 실수익률)</div>
-      <div class="card-value" id="total-return">0원 (0.00%)</div>
-    </div>
-    <div class="card">
-      <div class="card-title">평균 배당수익률</div>
-      <div class="card-value text-green" id="avg-dividend-yield">0.00%</div>
-    </div>
-    <div class="card">
-      <div class="card-title">연간 실수령 배당금</div>
-      <div class="card-value text-blue" id="total-dividend">0원</div>
-    </div>
-  </div>
-
-  <div class="section-title">보유 종목 리스트</div>
-  <div class="stock-list" id="stock-list-container">
-    <!-- JS로 종목이 렌더링됩니다. -->
-  </div>
-</div>
-
-<script>
-  // 샘플 포트폴리오 데이터
-  const portfolioData = [
-    { name: "삼성전자우", account: "일반", count: 400, avgPrice: 58000, currentPrice: 62000, dividendRate: 2.9 },
-    { name: "삼성SDI", account: "일반", count: 12, avgPrice: 410000, currentPrice: 380000, dividendRate: 0.3 },
-    { name: "AAPL", account: "일반", count: 10, avgPrice: 220000, currentPrice: 245000, dividendRate: 0.5 },
-    { name: "TIGER 배당커버드콜액티브", account: "ISA", count: 243, avgPrice: 9800, currentPrice: 10100, dividendRate: 8.4 },
-    { name: "TIME 미국나스닥100액티브", account: "ISA", count: 30, avgPrice: 13000, currentPrice: 14200, dividendRate: 1.0 },
-    { name: "TIGER 배당커버드콜액티브", account: "IRP", count: 250, avgPrice: 10000, currentPrice: 10100, dividendRate: 8.4 },
-    { name: "KODEX 삼성전자SK하이닉스채권혼합50", account: "IRP", count: 100, avgPrice: 14145, currentPrice: 14500, dividendRate: 2.5 },
-    { name: "TIGER 미국나스닥100타겟데일리커버드콜", account: "연금", count: 150, avgPrice: 9900, currentPrice: 10200, dividendRate: 10.8 }
-  ];
-
-  function getBadgeStyle(account) {
-    switch (account) {
-      case "ISA": return "badge-isa";
-      case "IRP": return "badge-irp";
-      case "연금": case "연금저축": return "badge-pension";
-      default: return "badge-normal";
-    }
-  }
-
-  function renderPortfolio() {
-    let totalInvest = 0;
-    let totalEval = 0;
-    let totalAnnualDividend = 0;
-
-    const listContainer = document.getElementById("stock-list-container");
-    listContainer.innerHTML = "";
-
-    portfolioData.forEach(item => {
-      const investAmt = item.count * item.avgPrice;
-      const evalAmt = item.count * item.currentPrice;
-      const annualDividend = evalAmt * (item.dividendRate / 100);
-
-      totalInvest += investAmt;
-      totalEval += evalAmt;
-      totalAnnualDividend += annualDividend;
-
-      const itemProfit = evalAmt - investAmt;
-      const itemReturnRate = investAmt > 0 ? ((itemProfit / investAmt) * 100).toFixed(2) : 0;
-      const profitClass = itemProfit >= 0 ? "text-red" : "text-blue";
-
-      // 종목 리스트 HTML
-      const itemHTML = `
-        <div class="stock-item">
-          <div>
-            <div class="stock-header">
-              <span class="stock-name">${item.name}</span>
-              <span class="badge ${getBadgeStyle(item.account)}">${item.account}</span>
-            </div>
-            <div class="stock-sub">${item.count}주 · 평균 ${item.avgPrice.toLocaleString()}원</div>
-          </div>
-          <div class="stock-right">
-            <div class="stock-yield ${profitClass}">${itemReturnRate}%</div>
-            <div class="stock-sub">연 ${Math.round(annualDividend).toLocaleString()}원</div>
-          </div>
+    <div class="container">
+        <div class="header">
+            <h1>📊 RuleFit 포트폴리오</h1>
+            <button class="add-btn" onclick="openModal()">+ 종목 추가</button>
         </div>
-      `;
-      listContainer.innerHTML += itemHTML;
-    });
 
-    // 전체 통계 계산
-    const totalProfit = totalEval - totalInvest;
-    const totalReturnRate = totalInvest > 0 ? ((totalProfit / totalInvest) * 100).toFixed(2) : 0;
-    const avgDividendYield = totalEval > 0 ? ((totalAnnualDividend / totalEval) * 100).toFixed(2) : 0;
+        <div class="card-grid">
+            <div class="card"><div class="label">총 평가금액</div><div class="value" id="totalEval">0원</div></div>
+            <div class="card"><div class="label">총 투자금액</div><div class="value" id="totalInvest">0원</div></div>
+            <div class="card"><div class="label">연간 실수령 배당금</div><div class="value blue" id="totalAnnualDiv">0원</div></div>
+            <div class="card"><div class="label">평균 배당수익률</div><div class="value green" id="totalYieldRate">0%</div></div>
+        </div>
 
-    // 요약 UI 업데이트
-    document.getElementById("total-eval").innerText = totalEval.toLocaleString() + "원";
-    document.getElementById("total-invest").innerText = totalInvest.toLocaleString() + "원";
-    
-    const returnEl = document.getElementById("total-return");
-    returnEl.innerText = `${totalProfit.toLocaleString()}원 (${totalReturnRate}%)`;
-    returnEl.className = `card-value ${totalProfit >= 0 ? 'text-red' : 'text-blue'}`;
+        <div class="chart-card">
+            <h2>📅 월별 예상 배당금 (종목별 주기 반영)</h2>
+            <canvas id="monthlyChart" height="180"></canvas>
+        </div>
 
-    document.getElementById("avg-dividend-yield").innerText = avgDividendYield + "%";
-    document.getElementById("total-dividend").innerText = Math.round(totalAnnualDividend).toLocaleString() + "원";
-  }
+        <div class="list-card">
+            <h2>보유 종목 리스트</h2>
+            <div id="stockList">
+                <div style="text-align: center; color: #868e96; padding: 20px;">데이터를 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
 
-  // 실행
-  renderPortfolio();
-</script>
+    <!-- 추가/수정 모달 -->
+    <div class="modal" id="stockModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">종목 추가</h3>
+            <input type="hidden" id="editId">
+            <div class="form-group"><label>종목명</label><input type="text" id="inputName"></div>
+            <div class="form-group"><label>종목코드</label><input type="text" id="inputCode"></div>
+            <div class="form-group"><label>계좌 유형</label>
+                <select id="inputAccount">
+                    <option value="일반">일반</option>
+                    <option value="ISA">ISA</option>
+                    <option value="IRP">IRP</option>
+                    <option value="연금저축">연금저축</option>
+                </select>
+            </div>
+            <div class="form-group"><label>보유 수량</label><input type="number" id="inputQty"></div>
+            <div class="form-group"><label>매수 단가</label><input type="number" id="inputAvg"></div>
+            <div class="modal-btn-group">
+                <button class="btn-cancel" onclick="closeModal()">취소</button>
+                <button class="btn-save" onclick="saveStock()">저장</button>
+            </div>
+        </div>
+    </div>
 
+    <script>
+        let monthlyChartInstance = null;
+        let globalHoldings = [];
+
+        const DIV_SCHEDULES = {
+            "GPIX": [1,2,3,4,5,6,7,8,9,10,11,12], "JEPQ": [1,2,3,4,5,6,7,8,9,10,11,12],
+            "472150.KS": [1,2,3,4,5,6,7,8,9,10,11,12], "486290.KS": [1,2,3,4,5,6,7,8,9,10,11,12],
+            "005930.KS": [4, 5, 8, 11], "005935.KS": [4, 5, 8, 11],
+            "000660.KS": [4, 5, 8, 11], "005387.KS": [4, 5, 8, 11], "AAPL": [2, 5, 8, 11]
+        };
+
+        async function loadPortfolio() {
+            try {
+                const response = await fetch('https://rulefit-mcp.onrender.com/tools/get-portfolio');
+                const data = await response.json();
+                if (!data.success) throw new Error("데이터 수신 오류");
+
+                globalHoldings = data.holdings;
+
+                document.getElementById('totalEval').innerText = data.summary.totalEvalKRW.toLocaleString() + '원';
+                document.getElementById('totalInvest').innerText = data.summary.totalInvestKRW.toLocaleString() + '원';
+                document.getElementById('totalAnnualDiv').innerText = data.summary.totalAnnualDivKRW.toLocaleString() + '원';
+                document.getElementById('totalYieldRate').innerText = data.summary.totalYieldRate;
+
+                const listContainer = document.getElementById('stockList');
+                listContainer.innerHTML = data.holdings.map(stock => {
+                    let badgeClass = 'general';
+                    if (stock.account === 'ISA') badgeClass = 'isa';
+                    else if (stock.account === 'IRP') badgeClass = 'irp';
+                    else if (stock.account === '연금저축') badgeClass = 'pension';
+
+                    return `
+                        <div class="stock-item">
+                            <div class="stock-info">
+                                <div class="stock-name-row">
+                                    <span class="stock-name">${stock.name}</span>
+                                    <span class="badge ${badgeClass}">${stock.account}</span>
+                                </div>
+                                <div class="stock-sub">${stock.qty.toLocaleString()}주 · 평균 ${stock.avg.toLocaleString()}원</div>
+                                <div style="margin-top: 4px;">
+                                    <button class="btn-sm" onclick="editStock(${stock.id})">수정</button>
+                                    <button class="btn-sm btn-delete" onclick="deleteStock(${stock.id})">삭제</button>
+                                </div>
+                            </div>
+                            <div class="stock-yields">
+                                <div class="yield-target">실제 ${stock.targetYield || stock.officialYield || '-'}</div>
+                                <div class="yield-official">(공시 ${stock.officialYield || '-'})</div>
+                                <div class="div-amount">연 ${stock.annualDivKRW.toLocaleString()}원</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                renderMonthlyChart(data.holdings);
+            } catch (error) {
+                document.getElementById('stockList').innerHTML = '<div style="text-align:center; color:red; padding:20px;">데이터를 불러올 수 없습니다.</div>';
+            }
+        }
+
+        function renderMonthlyChart(holdings) {
+            const monthlyTotals = Array(12).fill(0);
+            holdings.forEach(stock => {
+                const code = (stock.code || "").toUpperCase();
+                const schedule = DIV_SCHEDULES[code] || [1,2,3,4,5,6,7,8,9,10,11,12];
+                const divPerPayment = stock.annualDivKRW / schedule.length;
+                schedule.forEach(month => { monthlyTotals[month - 1] += divPerPayment; });
+            });
+
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            if (monthlyChartInstance) monthlyChartInstance.destroy();
+
+            monthlyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+                    datasets: [{ label: '예상 월 배당금(원)', data: monthlyTotals.map(val => Math.round(val)), backgroundColor: '#0d6efd', borderRadius: 6 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => (v / 10000).toLocaleString() + '만' } } } }
+            });
+        }
+
+        function openModal() {
+            document.getElementById('modalTitle').innerText = "종목 추가";
+            document.getElementById('editId').value = "";
+            document.getElementById('inputName').value = "";
+            document.getElementById('inputCode').value = "";
+            document.getElementById('inputQty').value = "";
+            document.getElementById('inputAvg').value = "";
+            document.getElementById('stockModal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('stockModal').style.display = 'none'; }
+
+        function editStock(id) {
+            const item = globalHoldings.find(h => h.id === id);
+            if (!item) return;
+
+            document.getElementById('modalTitle').innerText = "종목 수정";
+            document.getElementById('editId').value = id;
+            document.getElementById('inputName').value = item.name;
+            document.getElementById('inputCode').value = item.code;
+            document.getElementById('inputAccount').value = item.account;
+            document.getElementById('inputQty').value = item.qty;
+            document.getElementById('inputAvg').value = item.avg;
+            document.getElementById('stockModal').style.display = 'flex';
+        }
+
+        async function saveStock() {
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('inputName').value;
+            const code = document.getElementById('inputCode').value;
+            const account = document.getElementById('inputAccount').value;
+            const qty = document.getElementById('inputQty').value;
+            const avg = document.getElementById('inputAvg').value;
+
+            if (!qty || !avg) return alert("수량과 평단가를 입력해 주세요.");
+
+            const endpoint = id !== "" ? '/tools/update-stock' : '/tools/add-stock';
+            const bodyData = id !== "" ? { id: Number(id), name, code, account, qty, avg } : { name, code, account, qty, avg };
+
+            await fetch(`https://rulefit-mcp.onrender.com${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+
+            closeModal();
+            loadPortfolio();
+        }
+
+        async function deleteStock(id) {
+            if (!confirm("정말 이 종목을 삭제하시겠습니까?")) return;
+
+            await fetch('https://rulefit-mcp.onrender.com/tools/delete-stock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: Number(id) })
+            });
+
+            loadPortfolio();
+        }
+
+        loadPortfolio();
+    </script>
 </body>
 </html>

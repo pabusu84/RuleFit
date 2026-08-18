@@ -5,7 +5,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// GitHub Auto-Commit 관련 설정
+// GitHub Auto-Commit 설정
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = "pabusu84/RuleFit";
 const FILE_PATH = "server/server.js";
@@ -27,7 +27,7 @@ const BACKUP_STOCKS = {
     "AAPL": { name: "AAPL", price: 220.0, divPerShare: 1.0, officialYield: "0.5%", targetYield: "0.5%", currency: "USD" }
 };
 
-// 📌 [이미지 기반 전체 보유 종목 고정]
+// 📌 [기존 이미지 기반 15개 전체 보유 목록 영구 고정]
 let holdings = [
     { name: "삼성전자우", code: "005935.KS", qty: 400, avg: 188396, account: "일반" },
     { name: "SK하이닉스", code: "000660.KS", qty: 30, avg: 2162833, account: "일반" },
@@ -48,10 +48,9 @@ let holdings = [
 
 const EXCHANGE_RATE = 1350;
 
-// GitHub API로 server.js 자동 덮어쓰기 함수
+// GitHub 코드 자동 Commit/Push 처리 함수
 async function saveToGitHub() {
     if (!GITHUB_TOKEN) return;
-
     try {
         const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}`;
         const getFile = await fetch(url, {
@@ -84,13 +83,13 @@ async function saveToGitHub() {
     }
 }
 
-// 1. 포트폴리오 전체 조회 API
+// 1. 전체 포트폴리오 조회 API
 app.get('/tools/get-portfolio', (req, res) => {
     let totalInvestKRW = 0;
     let totalEvalKRW = 0;
     let totalAnnualDivKRW = 0;
 
-    const list = holdings.map(item => {
+    const list = holdings.map((item, index) => {
         const rawCode = (item.code || "").toUpperCase();
         const info = BACKUP_STOCKS[rawCode] || { price: item.avg, divPerShare: 0 };
         const isUSD = info.currency === 'USD';
@@ -100,7 +99,6 @@ app.get('/tools/get-portfolio', (req, res) => {
         const investKRW = isUSD ? (item.qty * item.avg * EXCHANGE_RATE) : (item.qty * item.avg);
         const evalKRW = item.qty * priceKRW;
         
-        // 절세 계좌(ISA, IRP, 연금저축)는 세금 공제 제외(세율 1.0 적용)
         const isTaxFreeAccount = ['ISA', 'IRP', '연금저축'].includes(item.account);
         const taxFactor = isTaxFreeAccount ? 1.0 : 0.846;
         const annualDivKRW = item.qty * divKRW * taxFactor;
@@ -110,6 +108,7 @@ app.get('/tools/get-portfolio', (req, res) => {
         totalAnnualDivKRW += annualDivKRW;
 
         return {
+            id: index,
             name: item.name,
             code: item.code,
             account: item.account,
@@ -140,25 +139,44 @@ app.get('/tools/get-portfolio', (req, res) => {
     });
 });
 
-// 2. 종목 추가 API (추가 시 GitHub 자동 저장)
+// 2. 종목 추가 API
 app.post('/tools/add-stock', async (req, res) => {
     const { name, code, qty, avg, account } = req.body;
-    if (!qty || !avg) {
-        return res.status(400).json({ success: false, message: "수량(qty)과 평단가(avg)는 필수입니다." });
-    }
+    if (!qty || !avg) return res.status(400).json({ success: false, message: "수량과 평단가는 필수입니다." });
 
-    const newStock = {
-        name: name || code || "미지정 종목",
-        code: code || "",
-        qty: Number(qty),
-        avg: Number(avg),
-        account: account || "일반"
-    };
-
+    const newStock = { name: name || code || "미지정 종목", code: code || "", qty: Number(qty), avg: Number(avg), account: account || "일반" };
     holdings.push(newStock);
     await saveToGitHub();
 
-    res.json({ success: true, message: "종목이 성공적으로 추가 및 영구 저장되었습니다.", added: newStock });
+    res.json({ success: true, message: "종목이 성공적으로 추가되어 저장되었습니다.", added: newStock });
+});
+
+// 3. 종목 수정 API
+app.post('/tools/update-stock', async (req, res) => {
+    const { id, name, code, qty, avg, account } = req.body;
+    if (id === undefined || id < 0 || id >= holdings.length) return res.status(400).json({ success: false, message: "유효하지 않은 ID입니다." });
+
+    holdings[id] = {
+        name: name || holdings[id].name,
+        code: code || holdings[id].code,
+        qty: Number(qty),
+        avg: Number(avg),
+        account: account || holdings[id].account
+    };
+
+    await saveToGitHub();
+    res.json({ success: true, message: "종목 정보가 수정되었습니다." });
+});
+
+// 4. 종목 삭제 API
+app.post('/tools/delete-stock', async (req, res) => {
+    const { id } = req.body;
+    if (id === undefined || id < 0 || id >= holdings.length) return res.status(400).json({ success: false, message: "유효하지 않은 ID입니다." });
+
+    const removed = holdings.splice(id, 1);
+    await saveToGitHub();
+
+    res.json({ success: true, message: "종목이 삭제되었습니다.", removed });
 });
 
 app.get('/', (req, res) => res.send("RuleFit REST API Server is running"));

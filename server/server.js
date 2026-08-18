@@ -1,25 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
-const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse.js');
-const { CallToolRequestSchema, ListToolsRequestSchema } = require('@modelcontextprotocol/sdk/types.js');
 
 const app = express();
-
-// CORS 전체 허용 (PlayMCP 연결 필수)
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['*']
-}));
-
+app.use(cors());
 app.use(express.json());
 
-const mcpServer = new Server(
-    { name: "rulefit-mcp", version: "1.0.0" },
-    { capabilities: { tools: {} } }
-);
-
+// 주식 및 배당 기초 데이터
 const BACKUP_STOCKS = {
     "005930.KS": { name: "삼성전자", price: 60000, divPerShare: 1444, officialYield: "2.4%", targetYield: "2.4%" },
     "005935.KS": { name: "삼성전자우", price: 50000, divPerShare: 1445, officialYield: "2.9%", targetYield: "2.9%" },
@@ -51,106 +37,79 @@ let holdings = [
 
 const EXCHANGE_RATE = 1350;
 
-mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-        tools: [
-            {
-                name: "get_portfolio",
-                description: "보유 주식 포트폴리오의 평가 금액, 수익률 및 연간 배당금을 조회합니다.",
-                inputSchema: { type: "object", properties: {} }
-            },
-            {
-                name: "add_stock",
-                description: "포트폴리오에 새로운 주식을 추가합니다.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        name: { type: "string", description: "종목명" },
-                        code: { type: "string", description: "종목코드" },
-                        qty: { type: "number", description: "수량" },
-                        avg: { type: "number", description: "평단가" },
-                        account: { type: "string", description: "계좌종류" }
-                    },
-                    required: ["qty", "avg"]
-                }
-            }
-        ]
+// 1. 포트폴리오 전체 조회 API (GET)
+app.get('/tools/get-portfolio', (req, res) => {
+    let totalInvestKRW = 0;
+    let totalEvalKRW = 0;
+    let totalAnnualDivKRW = 0;
+
+    const list = holdings.map(item => {
+        const rawCode = (item.code || "").toUpperCase();
+        const info = BACKUP_STOCKS[rawCode] || { price: item.avg, divPerShare: 0 };
+        const isUSD = info.currency === 'USD';
+
+        const priceKRW = isUSD ? Math.round(info.price * EXCHANGE_RATE) : info.price;
+        const divKRW = isUSD ? (info.divPerShare * EXCHANGE_RATE) : info.divPerShare;
+        const investKRW = isUSD ? (item.qty * item.avg * EXCHANGE_RATE) : (item.qty * item.avg);
+        const evalKRW = item.qty * priceKRW;
+        const taxFactor = (item.account === 'ISA') ? 1.0 : 0.846;
+        const annualDivKRW = item.qty * divKRW * taxFactor;
+
+        totalInvestKRW += investKRW;
+        totalEvalKRW += evalKRW;
+        totalAnnualDivKRW += annualDivKRW;
+
+        return {
+            name: item.name,
+            code: item.code,
+            account: item.account,
+            qty: item.qty,
+            avg: item.avg,
+            officialYield: info.officialYield || "-",
+            targetYield: info.targetYield || "-",
+            annualDivKRW: Math.round(annualDivKRW),
+            investKRW: Math.round(investKRW)
+        };
+    });
+
+    const totalProfitKRW = totalEvalKRW - totalInvestKRW;
+    const totalReturnRate = totalInvestKRW > 0 ? ((totalProfitKRW / totalInvestKRW) * 100).toFixed(2) + '%' : '0%';
+    const totalYieldRate = totalInvestKRW > 0 ? ((totalAnnualDivKRW / totalInvestKRW) * 100).toFixed(2) + '%' : '0%';
+
+    res.json({
+        success: true,
+        summary: {
+            totalInvestKRW: Math.round(totalInvestKRW),
+            totalEvalKRW: Math.round(totalEvalKRW),
+            totalProfitKRW: Math.round(totalProfitKRW),
+            totalReturnRate,
+            totalAnnualDivKRW: Math.round(totalAnnualDivKRW),
+            totalYieldRate
+        },
+        holdings: list
+    });
+});
+
+// 2. 종목 추가 API (POST)
+app.post('/tools/add-stock', (req, res) => {
+    const { name, code, qty, avg, account } = req.body;
+    if (!qty || !avg) {
+        return res.status(400).json({ success: false, message: "수량(qty)과 평단가(avg)는 필수입니다." });
+    }
+
+    const newStock = {
+        name: name || code || "미지정 종목",
+        code: code || "",
+        qty: Number(qty),
+        avg: Number(avg),
+        account: account || "일반"
     };
+
+    holdings.push(newStock);
+    res.json({ success: true, message: "종목이 성공적으로 추가되었습니다.", added: newStock });
 });
 
-mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    if (name === "get_portfolio") {
-        let totalInvest = 0, totalEval = 0, totalDiv = 0;
-        const list = holdings.map(item => {
-            const rawCode = (item.code || "").toUpperCase();
-            const info = BACKUP_STOCKS[rawCode] || { price: item.avg, divPerShare: 0 };
-            const isUSD = info.currency === 'USD';
-            const priceKRW = isUSD ? Math.round(info.price * EXCHANGE_RATE) : info.price;
-            const divKRW = isUSD ? (info.divPerShare * EXCHANGE_RATE) : info.divPerShare;
-            const investKRW = isUSD ? (item.qty * item.avg * EXCHANGE_RATE) : (item.qty * item.avg);
-            const evalKRW = item.qty * priceKRW;
-            const taxFactor = (item.account === 'ISA') ? 1.0 : 0.846;
-            const annualDivKRW = item.qty * divKRW * taxFactor;
-
-            totalInvest += investKRW;
-            totalEval += evalKRW;
-            totalDiv += annualDivKRW;
-
-            return `${item.name} (${item.account}): ${item.qty}주 / 예상배당: ${Math.round(annualDivKRW).toLocaleString()}원`;
-        });
-
-        const resultText = `[RuleFit 포트폴리오 요약]\n- 총 투자금: ${Math.round(totalInvest).toLocaleString()}원\n- 총 평가금: ${Math.round(totalEval).toLocaleString()}원\n- 연간 실수령 배당금: ${Math.round(totalDiv).toLocaleString()}원\n\n[보유 종목]\n` + list.join('\n');
-        return { content: [{ type: "text", text: resultText }] };
-    }
-
-    if (name === "add_stock") {
-        holdings.push({
-            name: args.name || args.code,
-            code: args.code || "",
-            qty: Number(args.qty),
-            avg: Number(args.avg),
-            account: args.account || "일반"
-        });
-        return { content: [{ type: "text", text: `${args.name || args.code} 추가 완료` }] };
-    }
-
-    throw new Error("Tool not found");
-});
-
-const transports = new Map();
-
-// PlayMCP 헬스체크 및 SSE 처리 통합
-app.get('/sse', async (req, res) => {
-    // SSE 헤더 체크
-    if (req.headers.accept === 'text/event-stream') {
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-
-        const transport = new SSEServerTransport('/message', res);
-        transports.set(transport.sessionId, transport);
-
-        req.on('close', () => transports.delete(transport.sessionId));
-        await mcpServer.connect(transport);
-    } else {
-        // PlayMCP의 일반 HTTP GET 테스트에 응답
-        res.status(200).json({ status: "ok", message: "Rulefit MCP SSE Endpoint Ready" });
-    }
-});
-
-app.post('/message', async (req, res) => {
-    const sessionId = req.query.sessionId;
-    const transport = transports.get(sessionId);
-    if (transport) {
-        await transport.handlePostMessage(req, res);
-    } else {
-        res.status(400).send("Session expired");
-    }
-});
-
-app.get('/', (req, res) => res.json({ status: "ok" }));
+app.get('/', (req, res) => res.send("RuleFit REST API Server is running"));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

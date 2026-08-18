@@ -5,7 +5,15 @@ const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse.js'
 const { CallToolRequestSchema, ListToolsRequestSchema } = require('@modelcontextprotocol/sdk/types.js');
 
 const app = express();
-app.use(cors());
+
+// PlayMCP 통신을 위한 CORS 풀기
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Accept']
+}));
+
+app.use(express.json());
 
 // MCP 서버 인스턴스 생성
 const mcpServer = new Server(
@@ -45,7 +53,7 @@ let holdings = [
 
 const EXCHANGE_RATE = 1350;
 
-// 1. PlayMCP용 Tools 목록
+// 1. PlayMCP Tools 목록
 mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
@@ -73,7 +81,7 @@ mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
     };
 });
 
-// 2. Tool 실행
+// 2. Tool 실행 핸들러
 mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
@@ -120,19 +128,33 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new Error("Tool not found");
 });
 
-// SSE 세션 관리
-let transport = null;
+// SSE 세션 Map 관리
+const transports = new Map();
 
 app.get('/sse', async (req, res) => {
-    transport = new SSEServerTransport('/message', res);
+    // SSE 헤더 설정
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const transport = new SSEServerTransport('/message', res);
+    transports.set(transport.sessionId, transport);
+
+    req.on('close', () => {
+        transports.delete(transport.sessionId);
+    });
+
     await mcpServer.connect(transport);
 });
 
 app.post('/message', async (req, res) => {
+    const sessionId = req.query.sessionId;
+    const transport = transports.get(sessionId);
+
     if (transport) {
         await transport.handlePostMessage(req, res);
     } else {
-        res.status(400).send("SSE connection not established");
+        res.status(400).send("Session not found or expired");
     }
 });
 

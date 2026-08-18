@@ -5,12 +5,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// GitHub Auto-Commit 관련 설정 (Render 환경변수 활용)
+// GitHub Auto-Commit 관련 설정
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = "pabusu84/RuleFit"; // [사용자 ID/저장소명]
+const GITHUB_REPO = "pabusu84/RuleFit";
 const FILE_PATH = "server/server.js";
 
-// 주식 및 배당 기초 데이터
+// 주식 및 배당 기초 데이터 (공시 배당률 vs 실제 목표 배당률)
 const BACKUP_STOCKS = {
     "005930.KS": { name: "삼성전자", price: 60000, divPerShare: 1444, officialYield: "2.4%", targetYield: "2.4%" },
     "005935.KS": { name: "삼성전자우", price: 50000, divPerShare: 1445, officialYield: "2.9%", targetYield: "2.9%" },
@@ -27,7 +27,7 @@ const BACKUP_STOCKS = {
     "AAPL": { name: "AAPL", price: 220.0, divPerShare: 1.0, officialYield: "0.5%", targetYield: "0.5%", currency: "USD" }
 };
 
-// 📌 영구 고정 holdings 목록
+// 📌 [이미지 기반 전체 보유 종목 고정]
 let holdings = [
     { name: "삼성전자우", code: "005935.KS", qty: 400, avg: 188396, account: "일반" },
     { name: "SK하이닉스", code: "000660.KS", qty: 30, avg: 2162833, account: "일반" },
@@ -48,29 +48,22 @@ let holdings = [
 
 const EXCHANGE_RATE = 1350;
 
-// GitHub API를 사용해 server.js 파일 자동 업데이트 함수
+// GitHub API로 server.js 자동 덮어쓰기 함수
 async function saveToGitHub() {
-    if (!GITHUB_TOKEN) {
-        console.log("GITHUB_TOKEN이 설정되지 않아 자동 커밋을 스킵합니다.");
-        return;
-    }
+    if (!GITHUB_TOKEN) return;
 
     try {
         const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}`;
-        
-        // 1. 기존 파일 정보(SHA 값) 가져오기
         const getFile = await fetch(url, {
             headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'RuleFit-App' }
         });
         const fileData = await getFile.json();
         
-        // 2. 현재 server.js 코드에서 holdings 배열 데이터 교체
         const fs = require('fs');
         let currentCode = fs.readFileSync(__filename, 'utf8');
         const updatedHoldingsStr = `let holdings = ${JSON.stringify(holdings, null, 4)};`;
         const updatedCode = currentCode.replace(/let holdings = \[[\s\S]*?\];/, updatedHoldingsStr);
 
-        // 3. GitHub API로 Commit 및 Push
         const body = {
             message: "Auto-update holdings via API",
             content: Buffer.from(updatedCode).toString('base64'),
@@ -86,14 +79,12 @@ async function saveToGitHub() {
             },
             body: JSON.stringify(body)
         });
-
-        console.log("GitHub 파일 자동 커밋 성공!");
     } catch (error) {
         console.error("GitHub Auto-Commit 실패:", error);
     }
 }
 
-// 1. 포트폴리오 조회 API
+// 1. 포트폴리오 전체 조회 API
 app.get('/tools/get-portfolio', (req, res) => {
     let totalInvestKRW = 0;
     let totalEvalKRW = 0;
@@ -109,6 +100,7 @@ app.get('/tools/get-portfolio', (req, res) => {
         const investKRW = isUSD ? (item.qty * item.avg * EXCHANGE_RATE) : (item.qty * item.avg);
         const evalKRW = item.qty * priceKRW;
         
+        // 절세 계좌(ISA, IRP, 연금저축)는 세금 공제 제외(세율 1.0 적용)
         const isTaxFreeAccount = ['ISA', 'IRP', '연금저축'].includes(item.account);
         const taxFactor = isTaxFreeAccount ? 1.0 : 0.846;
         const annualDivKRW = item.qty * divKRW * taxFactor;
@@ -148,7 +140,7 @@ app.get('/tools/get-portfolio', (req, res) => {
     });
 });
 
-// 2. 종목 추가 API (추가 즉시 GitHub Auto-Commit 수행)
+// 2. 종목 추가 API (추가 시 GitHub 자동 저장)
 app.post('/tools/add-stock', async (req, res) => {
     const { name, code, qty, avg, account } = req.body;
     if (!qty || !avg) {
@@ -164,11 +156,9 @@ app.post('/tools/add-stock', async (req, res) => {
     };
 
     holdings.push(newStock);
-    
-    // GitHub 코드 자동 덮어쓰기 실행
     await saveToGitHub();
 
-    res.json({ success: true, message: "종목이 성공적으로 추가 및 저장되었습니다.", added: newStock });
+    res.json({ success: true, message: "종목이 성공적으로 추가 및 영구 저장되었습니다.", added: newStock });
 });
 
 app.get('/', (req, res) => res.send("RuleFit REST API Server is running"));

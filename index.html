@@ -962,15 +962,6 @@
                 document.getElementById('remainingDivText').style.color = '#34d399';
             }
 
-            // 수익률 카드 업데이트
-            const profit = summary.totalProfitKRW;
-            const returnEl = document.getElementById('totalReturnRate');
-            const profitEl = document.getElementById('totalProfitAmt');
-            returnEl.innerText = (profit >= 0 ? '+' : '') + summary.totalReturnRate;
-            returnEl.className = 'value ' + (profit >= 0 ? 'green' : 'red');
-            profitEl.innerText = (profit >= 0 ? '+' : '') + profit.toLocaleString() + '원';
-            profitEl.className = 'sub-value ' + (profit >= 0 ? 'green' : 'red');
-
             runRuleFitChecks(summary, holdingsList);
 
             // 계좌별 그룹 정렬

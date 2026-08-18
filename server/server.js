@@ -10,18 +10,18 @@ app.use(express.json());
 // ==========================================
 const API_KEY = process.env.API_KEY || "rulefit-secret-key-2026"; // PlayMCP에 입력할 Value값
 
+// 🔒 잠시 주석 처리 (등록 완료 후 다시 켜기)
+/*
 app.use((req, res, next) => {
     const clientKey = req.headers['x-api-key'];
-    
-    // API 키가 일치하지 않으면 접근 거부
     if (!clientKey || clientKey !== API_KEY) {
-        return res.status(401).json({ 
-            success: false, 
-            message: "Unauthorized: 올바른 API Key가 필요합니다." 
-        });
+        return res.status(401).json({ success: false, message: "Unauthorized" });
     }
     next();
 });
+*/
+
+  
 
 // 종목명 매핑
 const STOCK_MAP = {

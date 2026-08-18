@@ -977,7 +977,7 @@
             if (holdingsList.length === 0) {
                 listContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">등록된 종목이 없습니다. 오른쪽 위의 종목 추가 버튼을 눌러보세요!</div>';
             } else {
-                const accountLabels = { '일반': '폈 일반 계좌', 'ISA': '폈 ISA 계좌', 'IRP': '폈 IRP 계좌', '연금저축': '폈 연금저축 계좌' };
+                const accountLabels = { '일반': '일반 계좌', 'ISA': 'ISA 계좌', 'IRP': 'IRP 계좌', '연금저축': '연금저축 계좌' };
                 const accountColors = { '일반': '#9ca3af', 'ISA': '#60a5fa', 'IRP': '#c084fc', '연금저축': '#fbbf24' };
 
                 listContainer.innerHTML = accountOrder.map(account => {

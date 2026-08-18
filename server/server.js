@@ -111,7 +111,7 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
             name: args.name || args.code,
             code: args.code || "",
             qty: Number(args.qty),
-            avg: Number(args.avg),
+            avg: Number(avg),
             account: args.account || "일반"
         });
         return { content: [{ type: "text", text: `${args.name || args.code} ${args.qty}주가 정상적으로 추가되었습니다.` }] };
@@ -120,19 +120,21 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new Error("요청한 도구를 찾을 수 없습니다.");
 });
 
-// SSE 연결용 전송 엔드포인트 세팅
+// SSE 연결용 전송 엔드포인트 세팅 (루트 및 /sse 지원)
 let transports = {};
 
-app.get('/sse', async (req, res) => {
+const handleSSE = async (req, res) => {
+    if (req.headers.accept !== 'text/event-stream') {
+        return res.json({ status: "ok", message: "Rulefit MCP Server is running" });
+    }
     const transport = new SSEServerTransport('/message', res);
     transports[transport.sessionId] = transport;
-    
-    req.on('close', () => {
-        delete transports[transport.sessionId];
-    });
-
+    req.on('close', () => delete transports[transport.sessionId]);
     await mcpServer.connect(transport);
-});
+};
+
+app.get('/', handleSSE);
+app.get('/sse', handleSSE);
 
 app.post('/message', async (req, res) => {
     const sessionId = req.query.sessionId;

@@ -45,26 +45,26 @@ let holdings = [
 
 const EXCHANGE_RATE = 1350;
 
-// 1. PlayMCP용 도구(Tools) 목록 제공 핸들러
+// 1. PlayMCP용 Tools 목록
 mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
             {
                 name: "get_portfolio",
-                description: "보유 중인 주식 포트폴리오의 평가 금액, 수익률 및 연간 배당금을 조회합니다.",
+                description: "보유 주식 포트폴리오의 평가 금액, 수익률 및 연간 배당금을 조회합니다.",
                 inputSchema: { type: "object", properties: {} }
             },
             {
                 name: "add_stock",
-                description: "포트폴리오에 새로운 주식 종목을 추가합니다.",
+                description: "포트폴리오에 새로운 주식을 추가합니다.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        name: { type: "string", description: "종목명 (예: 삼성전자)" },
-                        code: { type: "string", description: "종목 코드 (예: 005930)" },
+                        name: { type: "string", description: "종목명" },
+                        code: { type: "string", description: "종목코드" },
                         qty: { type: "number", description: "수량" },
                         avg: { type: "number", description: "평단가" },
-                        account: { type: "string", description: "계좌 유형 (일반, ISA 등)" }
+                        account: { type: "string", description: "계좌종류" }
                     },
                     required: ["qty", "avg"]
                 }
@@ -73,7 +73,7 @@ mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
     };
 });
 
-// 2. PlayMCP 도구 실행 요청 핸들러
+// 2. Tool 실행
 mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
@@ -111,40 +111,30 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
             name: args.name || args.code,
             code: args.code || "",
             qty: Number(args.qty),
-            avg: Number(avg),
+            avg: Number(args.avg),
             account: args.account || "일반"
         });
         return { content: [{ type: "text", text: `${args.name || args.code} ${args.qty}주가 정상적으로 추가되었습니다.` }] };
     }
 
-    throw new Error("요청한 도구를 찾을 수 없습니다.");
+    throw new Error("Tool not found");
 });
 
-// SSE 연결용 전송 엔드포인트 세팅 (루트 및 /sse 지원)
-let transports = {};
+// SSE 세션 관리
+let transport = null;
 
-const handleSSE = async (req, res) => {
-    if (req.headers.accept !== 'text/event-stream') {
-        return res.json({ status: "ok", message: "Rulefit MCP Server is running" });
-    }
-    const transport = new SSEServerTransport('/message', res);
-    transports[transport.sessionId] = transport;
-    req.on('close', () => delete transports[transport.sessionId]);
+app.get('/sse', async (req, res) => {
+    transport = new SSEServerTransport('/message', res);
     await mcpServer.connect(transport);
-};
-
-app.get('/', handleSSE);
-app.get('/sse', handleSSE);
+});
 
 app.post('/message', async (req, res) => {
-    const sessionId = req.query.sessionId;
-    const transport = transports[sessionId];
     if (transport) {
         await transport.handlePostMessage(req, res);
     } else {
-        res.status(400).send("Session not found");
+        res.status(400).send("SSE connection not established");
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Rulefit MCP Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`MCP Server running on port ${PORT}`));

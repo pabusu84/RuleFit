@@ -1,52 +1,8 @@
 {
-  "exchangeRate": 1354.58,
+  "exchangeRate": 1338.08,
   "stocks": {
-    "005387": {
-      "price": 147100.0,
-      "divPerShare": 11500.0,
-      "months": [
-        4,
-        5,
-        8,
-        11
-      ],
-      "currency": "KRW"
-    },
-    "005387.KS": {
-      "price": 147100.0,
-      "divPerShare": 11500.0,
-      "months": [
-        4,
-        5,
-        8,
-        11
-      ],
-      "currency": "KRW"
-    },
-    "005935": {
-      "price": 152900.0,
-      "divPerShare": 1445.0,
-      "months": [
-        5,
-        8,
-        11,
-        4
-      ],
-      "currency": "KRW"
-    },
-    "005935.KS": {
-      "price": 152900.0,
-      "divPerShare": 1445.0,
-      "months": [
-        5,
-        8,
-        11,
-        4
-      ],
-      "currency": "KRW"
-    },
     "005930": {
-      "price": 191800.0,
+      "price": 199500.0,
       "divPerShare": 1444.0,
       "months": [
         5,
@@ -57,7 +13,7 @@
       "currency": "KRW"
     },
     "005930.KS": {
-      "price": 191800.0,
+      "price": 199500.0,
       "divPerShare": 1444.0,
       "months": [
         5,
@@ -67,8 +23,82 @@
       ],
       "currency": "KRW"
     },
+    "000660": {
+      "price": 1222000.0,
+      "divPerShare": 1200.0,
+      "months": [
+        5,
+        8,
+        11,
+        4
+      ],
+      "currency": "KRW"
+    },
+    "000660.KS": {
+      "price": 1222000.0,
+      "divPerShare": 1200.0,
+      "months": [
+        5,
+        8,
+        11,
+        4
+      ],
+      "currency": "KRW"
+    },
+    "005387": {
+      "price": 145000.0,
+      "divPerShare": 11500.0,
+      "months": [
+        4,
+        5,
+        8,
+        11
+      ],
+      "currency": "KRW"
+    },
+    "005387.KS": {
+      "price": 145000.0,
+      "divPerShare": 11500.0,
+      "months": [
+        4,
+        5,
+        8,
+        11
+      ],
+      "currency": "KRW"
+    },
+    "AAPL": {
+      "price": 350.69,
+      "divPerShare": 3.06,
+      "months": [
+        2,
+        5,
+        8,
+        11
+      ],
+      "currency": "USD"
+    },
+    "GPIX": {
+      "price": 54.54,
+      "divPerShare": 4.586,
+      "months": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "currency": "USD"
+    },
     "472150": {
-      "price": 14245.0,
+      "price": 14730.0,
       "divPerShare": 1040.0,
       "months": [
         1,
@@ -87,7 +117,7 @@
       "currency": "KRW"
     },
     "472150.KS": {
-      "price": 14245.0,
+      "price": 14730.0,
       "divPerShare": 1040.0,
       "months": [
         1,
@@ -105,8 +135,46 @@
       ],
       "currency": "KRW"
     },
+    "005935": {
+      "price": 160400.0,
+      "divPerShare": 1445.0,
+      "months": [
+        5,
+        8,
+        11,
+        4
+      ],
+      "currency": "KRW"
+    },
+    "005935.KS": {
+      "price": 160400.0,
+      "divPerShare": 1445.0,
+      "months": [
+        5,
+        8,
+        11,
+        4
+      ],
+      "currency": "KRW"
+    },
+    "034020": {
+      "price": 46900.0,
+      "divPerShare": 0.0,
+      "months": [
+        4
+      ],
+      "currency": "KRW"
+    },
+    "034020.KS": {
+      "price": 46900.0,
+      "divPerShare": 0.0,
+      "months": [
+        4
+      ],
+      "currency": "KRW"
+    },
     "006400": {
-      "price": 431500.0,
+      "price": 455500.0,
       "divPerShare": 1000.0,
       "months": [
         4
@@ -114,34 +182,15 @@
       "currency": "KRW"
     },
     "006400.KS": {
-      "price": 431500.0,
+      "price": 455500.0,
       "divPerShare": 1000.0,
       "months": [
         4
       ],
       "currency": "KRW"
     },
-    "GPIX": {
-      "price": 53.36,
-      "divPerShare": 4.586,
-      "months": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ],
-      "currency": "USD"
-    },
     "JEPQ": {
-      "price": 54.34,
+      "price": 56.1,
       "divPerShare": 6.886,
       "months": [
         2,
@@ -157,55 +206,6 @@
         12
       ],
       "currency": "USD"
-    },
-    "AAPL": {
-      "price": 342.37,
-      "divPerShare": 3.06,
-      "months": [
-        2,
-        5,
-        8,
-        11
-      ],
-      "currency": "USD"
-    },
-    "000660": {
-      "price": 1157000.0,
-      "divPerShare": 1200.0,
-      "months": [
-        5,
-        8,
-        11,
-        4
-      ],
-      "currency": "KRW"
-    },
-    "000660.KS": {
-      "price": 1157000.0,
-      "divPerShare": 1200.0,
-      "months": [
-        5,
-        8,
-        11,
-        4
-      ],
-      "currency": "KRW"
-    },
-    "034020": {
-      "price": 44300.0,
-      "divPerShare": 0.0,
-      "months": [
-        4
-      ],
-      "currency": "KRW"
-    },
-    "034020.KS": {
-      "price": 44300.0,
-      "divPerShare": 0.0,
-      "months": [
-        4
-      ],
-      "currency": "KRW"
     }
   }
 }
